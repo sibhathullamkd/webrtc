@@ -557,18 +557,24 @@ console.log('Signaling server running');</code>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.4/peerjs.min.js"></script>
 <script>
 // ═══════════════════════════════════════════════════════════════════════════════
-// ARCHITECTURE FIX: SENDER calls RECEIVER (not the other way around).
-// Sender has the real camera stream → sender initiates the WebRTC call → 
-// receiver just answers and displays. This guarantees live video flows correctly.
+// ARCHITECTURE: 
 //
-// Discovery: Sender opens a data connection to a fixed well-known "registry" 
-// peer ID. Receiver listens on that same ID and hands out streams to all senders.
+// PROBLEM: A fixed receiver peer ID conflicts when PeerJS cloud still holds
+// the old session open (causes "unavailable-id" error you saw).
+//
+// SOLUTION — Two-peer receiver design:
+//   1. BROKER peer  → fixed ID "livecam-broker-v3". Extremely lightweight.
+//      Only job: when a sender data-connects and asks "what is the receiver ID?",
+//      broker replies with receiverPeerId. Broker auto-retries with suffix if ID taken.
+//   2. RECEIVER peer → always a fresh random ID. Never conflicts.
+//      Senders get this ID from broker, then CALL it with camera stream.
+//
+// Sender flow: connect to broker → get receiverPeerId → call receiverPeerId with camera
+// Receiver flow: start random peer → start broker → answer all incoming calls
 // ═══════════════════════════════════════════════════════════════════════════════
 
-// ─── CONSTANTS ───────────────────────────────────────────────────────────────
 const CORRECT_PIN = '225400';
-// The receiver always uses this fixed peer ID so senders can find it
-const RECEIVER_PEER_ID = 'livecam-receiver-main-v1';
+const BROKER_BASE_ID = 'livecam-broker-v3';
 
 // ─── PIN LOCK ────────────────────────────────────────────────────────────────
 let pinEntry = '';
@@ -737,11 +743,11 @@ function connectSenderPeer() {
 
   senderPeer.on('open', (id) => {
     setDiag('dServer', 'CONNECTED ✓', 'ok');
-    setDiag('dConn', 'CALLING RECEIVER...', 'warn');
+    setDiag('dConn', 'FINDING RECEIVER...', 'warn');
     document.getElementById('sbServer').className = 'sb-dot green';
-    toast('Peer server connected ✓ — calling receiver...');
-    // Now call the fixed receiver ID — this is the KEY fix
-    callReceiver(RECEIVER_PEER_ID);
+    toast('Peer server connected ✓ — finding receiver...');
+    // Ask broker for the receiver's current real peer ID
+    discoverReceiverViaBroker();
   });
 
   // Listen for data connections FROM receiver (for camera flip commands)
@@ -773,6 +779,58 @@ function connectSenderPeer() {
   });
 }
 
+// Try broker IDs in order (suffix 0, 1, 2...) until one responds
+let brokerAttempt = 0;
+let discoveryConn = null;
+let discoveryTimer = null;
+
+function discoverReceiverViaBroker() {
+  if (!senderActive || !senderPeer || !senderPeer.open) return;
+  if (discoveryTimer) clearTimeout(discoveryTimer);
+  if (discoveryConn) { try { discoveryConn.close(); } catch(e){} discoveryConn = null; }
+
+  const suffix = brokerAttempt > 0 ? '-' + brokerAttempt : '';
+  const brokerId = BROKER_BASE_ID + suffix;
+
+  setDiag('dConn', 'BROKER ' + brokerId.substr(-4).toUpperCase(), 'warn');
+
+  discoveryConn = senderPeer.connect(brokerId, { reliable: true });
+
+  let gotResponse = false;
+
+  discoveryConn.on('open', () => {
+    discoveryConn.send({ type: 'ping' });
+  });
+
+  discoveryConn.on('data', (data) => {
+    if (data && data.type === 'receiverId' && data.id) {
+      gotResponse = true;
+      brokerAttempt = 0; // reset for next time
+      const receiverId = data.id;
+      setDiag('dConn', 'RECEIVER FOUND ✓', 'ok');
+      toast('Receiver found — connecting camera...');
+      callReceiver(receiverId);
+    }
+  });
+
+  discoveryConn.on('error', () => {
+    if (!gotResponse) tryNextBroker();
+  });
+
+  // If no response in 5 seconds, try next broker suffix
+  discoveryTimer = setTimeout(() => {
+    if (!gotResponse) tryNextBroker();
+  }, 5000);
+}
+
+function tryNextBroker() {
+  if (!senderActive) return;
+  brokerAttempt++;
+  if (brokerAttempt > 5) brokerAttempt = 0;
+  setDiag('dConn', 'RETRY BROKER...', 'warn');
+  discoveryTimer = setTimeout(discoverReceiverViaBroker, 3000);
+}
+
 function callReceiver(receiverId) {
   if (!senderPeer || !localStream) return;
   if (outgoingCalls.has(receiverId)) return; // already calling
@@ -800,16 +858,16 @@ function callReceiver(receiverId) {
 
   call.on('close', () => {
     outgoingCalls.delete(receiverId);
-    setDiag('dConn', 'RECEIVER CLOSED', 'warn');
+    setDiag('dConn', 'RECONNECTING...', 'warn');
     document.getElementById('sbStream').className = 'sb-dot yellow';
-    // Re-attempt after receiver may restart
-    setTimeout(() => { if (senderActive) callReceiver(receiverId); }, 6000);
+    // Re-discover in case receiver restarted with a new ID
+    setTimeout(() => { if (senderActive) discoverReceiverViaBroker(); }, 5000);
   });
 
   call.on('error', (err) => {
     outgoingCalls.delete(receiverId);
     setDiag('dConn', 'STREAM ERR', 'err');
-    setTimeout(() => { if (senderActive) callReceiver(receiverId); }, 6000);
+    setTimeout(() => { if (senderActive) discoverReceiverViaBroker(); }, 5000);
   });
 }
 
@@ -821,6 +879,9 @@ function stopSender() {
   if (senderPeer) { try { senderPeer.destroy(); } catch(e){} senderPeer = null; }
   if (senderUptimeInterval) clearInterval(senderUptimeInterval);
   if (senderRetryTimer) clearTimeout(senderRetryTimer);
+  if (discoveryTimer) clearTimeout(discoveryTimer);
+  if (discoveryConn) { try { discoveryConn.close(); } catch(e){} discoveryConn = null; }
+  brokerAttempt = 0;
 
   document.getElementById('localVideo').srcObject = null;
   document.getElementById('btnStartSender').style.display = 'block';
@@ -878,14 +939,16 @@ function updateUptime() {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// RECEIVER  
-// KEY CHANGE: Receiver sits on the fixed RECEIVER_PEER_ID and answers every
-// incoming call. Each call = one sender's camera. Display each in its own tile.
+// RECEIVER — dual-peer design (broker + receiver)
 // ═══════════════════════════════════════════════════════════════════════════════
-let receiverPeer = null;
-const activeCameras = new Map(); // senderId → { call, facing }
+let receiverPeer = null;   // random ID, answers video calls from senders
+let brokerPeer   = null;   // fixed ID, tells senders the receiver's real ID
+let currentReceiverId = null;
+const activeCameras = new Map();
 let receiverRetryTimer = null;
+let brokerRetryTimer = null;
 let camCounter = 0;
+let brokerSuffix = 0; // incremented if broker ID is taken
 
 function initReceiver() {
   if (receiverRetryTimer) clearTimeout(receiverRetryTimer);
@@ -893,26 +956,26 @@ function initReceiver() {
 
   document.getElementById('sbServer').className = 'sb-dot yellow';
 
-  receiverPeer = new Peer(RECEIVER_PEER_ID, makePeerOptions());
+  // Step 1: Create receiver peer with a guaranteed-fresh random ID
+  receiverPeer = new Peer(makePeerOptions()); // no ID = PeerJS assigns random
 
   receiverPeer.on('open', (id) => {
+    currentReceiverId = id;
     document.getElementById('sbServer').className = 'sb-dot green';
-    toast('Receiver ready — waiting for cameras...');
+    toast('Receiver ready — ID: ' + id.substr(-6).toUpperCase());
+    // Step 2: Start broker so senders can discover this ID
+    startBroker();
   });
 
-  // ── This is where the magic happens ──────────────────────────────────────
-  // Every time a sender calls us, we answer with a blank stream.
-  // The sender's camera stream comes back as remoteStream → display it.
+  // Answer every incoming video call (each = one sender's camera)
   receiverPeer.on('call', (call) => {
     const meta = call.metadata || {};
     const senderId = meta.senderId || call.peer;
     const label = meta.label || ('CAM-' + (++camCounter).toString().padStart(2,'0'));
 
-    // Answer with a blank audio track (required by WebRTC to complete handshake)
-    const silentStream = createSilentStream();
-    call.answer(silentStream);
+    // Answer — we must pass a stream; use silent audio so WebRTC is happy
+    call.answer(createSilentStream());
 
-    // Create or reuse a camera card
     if (!activeCameras.has(senderId)) {
       createCameraCard(senderId, label);
       activeCameras.set(senderId, { call, facing: 'environment' });
@@ -921,56 +984,31 @@ function initReceiver() {
       setCardStatus(senderId, 'connecting');
     }
 
-    // ── stream event: fires with sender's LIVE camera track ──────────────
     call.on('stream', (remoteStream) => {
-      const cid = cleanId(senderId);
-      const vid = document.getElementById('vid-' + cid);
+      const vid = document.getElementById('vid-' + cleanId(senderId));
       if (!vid) return;
-
-      // Attach the stream directly
+      vid.srcObject = null;        // clear first — avoids stale track
       vid.srcObject = remoteStream;
-
-      // Force play — critical on mobile
-      vid.onloadedmetadata = () => {
-        vid.play().catch(e => console.warn('play err:', e));
-      };
-      // Fallback in case onloadedmetadata already fired
-      if (vid.readyState >= 1) vid.play().catch(() => {});
-
+      vid.onloadedmetadata = () => vid.play().catch(() => {});
+      if (vid.readyState >= 2) vid.play().catch(() => {});
       setCardStatus(senderId, 'live');
       updateCameraCount();
-      toast('📷 ' + label + ' connected!');
+      toast('📷 ' + label + ' is live!');
     });
 
-    call.on('close', () => {
-      setCardStatus(senderId, 'offline');
-      updateCameraCount();
-      toast(label + ' disconnected', true);
-    });
-
-    call.on('error', (err) => {
-      setCardStatus(senderId, 'offline');
-      console.warn('call error from', senderId, err);
-    });
+    call.on('close', () => { setCardStatus(senderId, 'offline'); updateCameraCount(); });
+    call.on('error', ()  => { setCardStatus(senderId, 'offline'); });
   });
 
-  // Handle data connections from senders (flip commands come back this way)
+  // Accept flip commands sent as data connections from receiver→sender path
   receiverPeer.on('connection', (conn) => {
-    // Receiver doesn't need to do anything here; flip commands go sender→receiver
+    // nothing needed here; flip goes receiver→sender, not reverse
   });
 
   receiverPeer.on('error', (err) => {
-    console.warn('Receiver peer error:', err.type);
+    console.warn('receiverPeer error:', err.type);
     document.getElementById('sbServer').className = 'sb-dot red';
-
-    if (err.type === 'unavailable-id') {
-      // Another receiver instance is already running with this ID
-      // This is fine — senders will connect to that one. Show a warning.
-      toast('⚠ Another receiver is active on this ID. Only one receiver window can be open at a time.', true);
-      return; // don't retry — would just loop
-    }
-
-    receiverRetryTimer = setTimeout(initReceiver, 6000);
+    receiverRetryTimer = setTimeout(initReceiver, 5000);
   });
 
   receiverPeer.on('disconnected', () => {
@@ -978,6 +1016,54 @@ function initReceiver() {
     receiverRetryTimer = setTimeout(() => {
       if (receiverPeer && !receiverPeer.destroyed) receiverPeer.reconnect();
       else initReceiver();
+    }, 4000);
+  });
+}
+
+function startBroker() {
+  if (brokerRetryTimer) clearTimeout(brokerRetryTimer);
+  if (brokerPeer) { try { brokerPeer.destroy(); } catch(e){} brokerPeer = null; }
+
+  const brokerId = BROKER_BASE_ID + (brokerSuffix > 0 ? '-' + brokerSuffix : '');
+
+  brokerPeer = new Peer(brokerId, makePeerOptions());
+
+  brokerPeer.on('open', () => {
+    console.log('Broker online as', brokerId);
+    // Save broker ID so senders on same device can read it instantly
+    localStorage.setItem('livecam_broker_id', brokerId);
+  });
+
+  // When a sender data-connects to broker, reply with the real receiver ID
+  brokerPeer.on('connection', (conn) => {
+    conn.on('open', () => {
+      conn.send({ type: 'receiverId', id: currentReceiverId });
+    });
+    conn.on('data', (d) => {
+      // Senders may send keepalive pings — just reply with receiver ID again
+      if (d && d.type === 'ping') conn.send({ type: 'receiverId', id: currentReceiverId });
+    });
+  });
+
+  brokerPeer.on('error', (err) => {
+    console.warn('brokerPeer error:', err.type);
+    if (err.type === 'unavailable-id') {
+      // ID taken — increment suffix and try next slot
+      brokerSuffix++;
+      if (brokerSuffix > 5) {
+        // After 5 tries, clear suffix (old sessions should have expired)
+        brokerSuffix = 0;
+      }
+      brokerRetryTimer = setTimeout(startBroker, 2000);
+    } else {
+      brokerRetryTimer = setTimeout(startBroker, 5000);
+    }
+  });
+
+  brokerPeer.on('disconnected', () => {
+    brokerRetryTimer = setTimeout(() => {
+      if (brokerPeer && !brokerPeer.destroyed) brokerPeer.reconnect();
+      else startBroker();
     }, 4000);
   });
 }
@@ -1054,9 +1140,9 @@ function requestCameraFlip(senderId) {
 }
 
 function refreshReceiverConnections() {
-  toast('Waiting for senders to reconnect...');
-  // Receiver is passive — just ensure peer is open
-  if (!receiverPeer || !receiverPeer.open) initReceiver();
+  toast('Restarting receiver...');
+  brokerSuffix = 0;
+  initReceiver();
 }
 
 // ─── SHARED UTILS ─────────────────────────────────────────────────────────────

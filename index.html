@@ -1,1010 +1,1111 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
-<title>LiveCam</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>LiveCam — Live Camera Monitor</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600;700&family=Syne:wght@400;700;800&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@400;600;700&display=swap');
 
-:root {
-  --bg: #080b10;
-  --s1: #0d1118;
-  --s2: #111720;
-  --border: #1c2333;
-  --accent: #3dff9a;
-  --accent2: #ff4757;
-  --blue: #4da6ff;
-  --yellow: #ffd32a;
-  --text: #dde3ef;
-  --muted: #4a566b;
-  --card: #0f141c;
-  --r: 14px;
-}
+  :root {
+    --bg: #080c10;
+    --panel: #0d1318;
+    --border: #1a2a1a;
+    --green: #00ff88;
+    --green-dim: #00994d;
+    --red: #ff3355;
+    --yellow: #ffcc00;
+    --blue: #00aaff;
+    --text: #c8e6c8;
+    --text-dim: #4a6a4a;
+    --mono: 'Share Tech Mono', monospace;
+    --ui: 'Rajdhani', sans-serif;
+  }
 
-* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
 
-html, body {
-  height: 100%;
-  background: var(--bg);
-  color: var(--text);
-  font-family: 'Syne', sans-serif;
-  overscroll-behavior: none;
-}
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--mono);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
 
-body::after {
-  content: '';
-  position: fixed; inset: 0; pointer-events: none; z-index: 0;
-  background:
-    radial-gradient(ellipse 60% 40% at 20% 0%, rgba(61,255,154,0.04) 0%, transparent 70%),
-    radial-gradient(ellipse 50% 30% at 80% 100%, rgba(77,166,255,0.04) 0%, transparent 70%);
-}
+  /* Scanline overlay */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,255,136,0.015) 2px, rgba(0,255,136,0.015) 4px);
+    pointer-events: none;
+    z-index: 9999;
+  }
 
-.app { position: relative; z-index: 1; max-width: 480px; margin: 0 auto; padding: 0 14px 30px; min-height: 100vh; }
+  /* ── PIN LOCK ── */
+  #pinOverlay {
+    position: fixed; inset: 0; background: #000;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    z-index: 10000; gap: 24px;
+  }
+  #pinOverlay.hidden { display: none; }
 
-/* ── SCREENS ── */
-.screen { display: none; }
-.screen.active { display: block; }
+  .pin-logo {
+    font-family: var(--ui); font-size: 2rem; font-weight: 700;
+    color: var(--green); letter-spacing: 6px; text-transform: uppercase;
+  }
+  .pin-sub { font-size: 0.75rem; color: var(--text-dim); letter-spacing: 3px; }
 
-/* ── HEADER ── */
-.hdr {
-  display: flex; align-items: center; gap: 10px;
-  padding: 18px 0 20px;
-}
-.hdr-icon {
-  width: 38px; height: 38px; border-radius: 10px;
-  background: linear-gradient(135deg,#3dff9a22,#4da6ff22);
-  border: 1px solid #3dff9a33;
-  display: flex; align-items: center; justify-content: center; font-size: 18px;
-}
-.hdr h1 { font-size: 22px; font-weight: 800; letter-spacing: -0.5px; }
-.hdr span { color: var(--accent); }
-.hdr-sub { font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: var(--muted); margin-top: 1px; }
+  .pin-dots {
+    display: flex; gap: 12px; margin: 8px 0;
+  }
+  .pin-dot {
+    width: 14px; height: 14px; border-radius: 50%;
+    border: 2px solid var(--green-dim);
+    transition: background 0.15s;
+  }
+  .pin-dot.filled { background: var(--green); border-color: var(--green); box-shadow: 0 0 8px var(--green); }
 
-/* ── ROLE CARDS ── */
-.role-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
-.role-card {
-  border: 1.5px solid var(--border);
-  background: var(--card);
-  border-radius: var(--r);
-  padding: 18px 12px;
-  text-align: center;
-  cursor: pointer;
-  transition: all .2s;
-  -webkit-user-select: none;
-}
-.role-card:active { transform: scale(.97); }
-.role-card.cam:hover, .role-card.cam:focus { border-color: var(--accent2); box-shadow: 0 0 24px rgba(255,71,87,.15); }
-.role-card.view:hover, .role-card.view:focus { border-color: var(--blue); box-shadow: 0 0 24px rgba(77,166,255,.15); }
-.role-card .rc-icon { font-size: 28px; display: block; margin-bottom: 8px; }
-.role-card .rc-title { font-size: 15px; font-weight: 700; }
-.role-card .rc-sub { font-size: 11px; color: var(--muted); margin-top: 3px; font-family: 'IBM Plex Mono', monospace; }
+  .pin-grid {
+    display: grid; grid-template-columns: repeat(3, 70px); gap: 10px;
+  }
+  .pin-btn {
+    height: 70px; background: var(--panel); border: 1px solid var(--border);
+    color: var(--text); font-family: var(--ui); font-size: 1.6rem; font-weight: 700;
+    cursor: pointer; border-radius: 4px; transition: all 0.1s;
+    position: relative; overflow: hidden;
+  }
+  .pin-btn:active { background: var(--green); color: #000; transform: scale(0.95); }
+  .pin-btn.wide { grid-column: span 2; }
+  .pin-error { color: var(--red); font-size: 0.8rem; letter-spacing: 2px; height: 20px; }
 
-/* ── PANELS ── */
-.panel {
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: var(--r);
-  padding: 18px;
-  margin-bottom: 14px;
-}
-.panel-label {
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase;
-  color: var(--muted); margin-bottom: 12px;
-}
+  /* ── HEADER ── */
+  header {
+    border-bottom: 1px solid var(--border);
+    padding: 12px 20px;
+    display: flex; align-items: center; justify-content: space-between;
+    background: rgba(13,19,24,0.95);
+    position: sticky; top: 0; z-index: 100;
+  }
+  .brand { font-family: var(--ui); font-size: 1.4rem; font-weight: 700; color: var(--green); letter-spacing: 4px; }
+  .brand span { color: var(--text-dim); font-weight: 400; font-size: 0.75rem; display: block; letter-spacing: 2px; }
 
-/* ── VIDEO ── */
-.vid-wrap {
-  position: relative; width: 100%;
-  aspect-ratio: 16/9;
-  background: #050709; border-radius: 10px; overflow: hidden;
-  border: 1px solid var(--border);
-}
-video {
-  width: 100%; height: 100%; object-fit: cover; display: block;
-  background: #000;
-}
-.vid-ph {
-  position: absolute; inset: 0;
-  display: flex; flex-direction: column; align-items: center; justify-content: center;
-  gap: 8px; color: var(--muted); font-family: 'IBM Plex Mono', monospace; font-size: 12px;
-}
-.vid-ph .ph-ico { font-size: 28px; opacity: .4; }
-.live-pill {
-  position: absolute; top: 10px; left: 10px;
-  background: var(--accent2); color: #fff;
-  font-size: 10px; font-weight: 700; font-family: 'IBM Plex Mono', monospace;
-  padding: 3px 9px; border-radius: 20px; letter-spacing: 1px;
-  display: none;
-  animation: blink 2s infinite;
-}
-@keyframes blink { 0%,100%{opacity:1}50%{opacity:.5} }
+  .header-status {
+    display: flex; gap: 16px; align-items: center; font-size: 0.7rem; color: var(--text-dim);
+  }
+  .blink { animation: blink 1s infinite; }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.2} }
+  .dot-live { width: 8px; height: 8px; border-radius: 50%; background: var(--red); display: inline-block; margin-right: 4px; }
 
-/* ── 4-DIGIT CODE ── */
-.code-display {
-  display: flex; align-items: center; justify-content: center;
-  gap: 10px; margin: 18px 0;
-}
-.digit-box {
-  width: 62px; height: 72px;
-  background: var(--s2);
-  border: 2px solid var(--border);
-  border-radius: 12px;
-  display: flex; align-items: center; justify-content: center;
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 32px; font-weight: 700;
-  color: var(--accent);
-  letter-spacing: 0;
-  transition: all .3s;
-  position: relative; overflow: hidden;
-}
-.digit-box.filled {
-  border-color: var(--accent);
-  box-shadow: 0 0 18px rgba(61,255,154,.2);
-}
-.digit-box::after {
-  content: '';
-  position: absolute; bottom: 0; left: 0; right: 0; height: 2px;
-  background: var(--accent); opacity: .3;
-}
+  /* ── MODE SELECTOR ── */
+  .mode-bar {
+    display: flex; gap: 0; border-bottom: 1px solid var(--border);
+  }
+  .mode-btn {
+    flex: 1; padding: 14px; text-align: center;
+    font-family: var(--ui); font-size: 0.9rem; font-weight: 600;
+    letter-spacing: 3px; text-transform: uppercase;
+    cursor: pointer; border: none; background: var(--panel);
+    color: var(--text-dim); border-right: 1px solid var(--border);
+    transition: all 0.2s;
+  }
+  .mode-btn:last-child { border-right: none; }
+  .mode-btn.active { background: var(--bg); color: var(--green); border-bottom: 2px solid var(--green); }
 
-.code-hint {
-  text-align: center; font-size: 12px; color: var(--muted);
-  font-family: 'IBM Plex Mono', monospace; margin-bottom: 6px;
-}
+  /* ── PAGES ── */
+  .page { display: none; padding: 20px; }
+  .page.active { display: block; }
 
-/* Code entry (receiver) */
-.pin-row {
-  display: flex; gap: 10px; justify-content: center; margin: 18px 0 14px;
-}
-.pin-digit {
-  width: 62px; height: 72px;
-  background: var(--s2);
-  border: 2px solid var(--border);
-  border-radius: 12px;
-  text-align: center;
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 32px; font-weight: 700;
-  color: var(--text);
-  outline: none;
-  -webkit-appearance: none;
-  caret-color: var(--accent);
-  transition: border-color .2s;
-  padding: 0;
-}
-.pin-digit:focus { border-color: var(--blue); }
-.pin-digit.filled-r { border-color: var(--blue); color: var(--blue); }
+  /* ── SENDER PAGE ── */
+  .sender-wrap {
+    display: grid; grid-template-columns: 1fr 300px; gap: 20px; max-width: 1200px; margin: 0 auto;
+  }
+  @media(max-width:768px) { .sender-wrap { grid-template-columns: 1fr; } }
 
-/* ── BUTTONS ── */
-.btn {
-  width: 100%; padding: 14px;
-  border: none; border-radius: 10px;
-  font-family: 'Syne', sans-serif;
-  font-size: 15px; font-weight: 700;
-  cursor: pointer; display: flex;
-  align-items: center; justify-content: center; gap: 8px;
-  transition: all .2s;
-  -webkit-user-select: none;
-}
-.btn:active { transform: scale(.97); }
-.btn-green {
-  background: linear-gradient(135deg, #3dff9a, #00cc6a);
-  color: #000;
-  box-shadow: 0 4px 20px rgba(61,255,154,.25);
-}
-.btn-green:disabled { opacity: .4; }
-.btn-blue {
-  background: linear-gradient(135deg, #4da6ff, #0066cc);
-  color: #fff;
-  box-shadow: 0 4px 20px rgba(77,166,255,.25);
-}
-.btn-red {
-  background: linear-gradient(135deg, #ff4757, #cc0022);
-  color: #fff;
-  box-shadow: 0 4px 20px rgba(255,71,87,.2);
-}
-.btn-ghost {
-  background: var(--s2); border: 1px solid var(--border);
-  color: var(--muted); font-size: 13px;
-}
-.btn + .btn { margin-top: 8px; }
+  .cam-preview-box {
+    background: #000; border: 1px solid var(--border); border-radius: 4px;
+    overflow: hidden; position: relative; aspect-ratio: 16/9;
+  }
+  #localVideo { width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); }
+  .cam-overlay {
+    position: absolute; top: 0; left: 0; right: 0;
+    padding: 10px 14px;
+    background: linear-gradient(to bottom, rgba(0,0,0,0.7), transparent);
+    display: flex; justify-content: space-between; align-items: flex-start;
+    pointer-events: none;
+  }
+  .cam-label { font-size: 0.7rem; color: var(--green); letter-spacing: 2px; }
+  .rec-badge {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 0.65rem; color: var(--red); letter-spacing: 2px;
+  }
 
-/* ── STATUS BAR ── */
-.status-bar {
-  display: flex; align-items: center; gap: 9px;
-  padding: 10px 14px;
-  background: var(--s2); border: 1px solid var(--border);
-  border-radius: 10px; margin-bottom: 14px;
-  font-family: 'IBM Plex Mono', monospace; font-size: 12px;
-}
-.sdot {
-  width: 8px; height: 8px; border-radius: 50%;
-  background: var(--muted); flex-shrink: 0; transition: background .3s;
-}
-.sdot.on { background: var(--accent); animation: pulse 1.5s infinite; }
-.sdot.connecting { background: var(--yellow); animation: pulse 1s infinite; }
-.sdot.err { background: var(--accent2); }
-@keyframes pulse { 0%,100%{opacity:1}50%{opacity:.3} }
-.stext { color: var(--muted); }
-.stext.on { color: var(--accent); }
-.stext.connecting { color: var(--yellow); }
-.stext.err { color: var(--accent2); }
+  .diag-panel {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 4px;
+    padding: 16px; display: flex; flex-direction: column; gap: 10px;
+  }
+  .diag-title {
+    font-family: var(--ui); font-size: 0.75rem; font-weight: 700;
+    letter-spacing: 4px; color: var(--green-dim); text-transform: uppercase;
+    border-bottom: 1px solid var(--border); padding-bottom: 8px; margin-bottom: 4px;
+  }
+  .diag-row {
+    display: flex; justify-content: space-between; align-items: center;
+    font-size: 0.7rem; gap: 8px;
+  }
+  .diag-key { color: var(--text-dim); letter-spacing: 1px; flex-shrink: 0; }
+  .diag-val { color: var(--text); text-align: right; word-break: break-all; }
+  .diag-val.ok { color: var(--green); }
+  .diag-val.warn { color: var(--yellow); }
+  .diag-val.err { color: var(--red); }
 
-/* ── STATS ── */
-.stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 14px; }
-.stat { background: var(--s2); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; }
-.stat-l { font-size: 10px; color: var(--muted); font-family: 'IBM Plex Mono', monospace; margin-bottom: 4px; }
-.stat-v { font-size: 13px; font-weight: 700; font-family: 'IBM Plex Mono', monospace; }
-.stat-v.ok { color: var(--accent); }
-.stat-v.warn { color: var(--yellow); }
-.stat-v.err { color: var(--accent2); }
+  .btn {
+    width: 100%; padding: 14px; border: none; cursor: pointer;
+    font-family: var(--ui); font-size: 0.9rem; font-weight: 700;
+    letter-spacing: 3px; text-transform: uppercase; border-radius: 4px;
+    transition: all 0.2s; margin-top: 4px;
+  }
+  .btn-green { background: var(--green); color: #000; }
+  .btn-green:hover { box-shadow: 0 0 20px rgba(0,255,136,0.4); }
+  .btn-green:disabled { background: var(--green-dim); color: #002211; cursor: not-allowed; box-shadow: none; }
+  .btn-red { background: var(--red); color: #fff; }
+  .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text-dim); }
+  .btn-outline:hover { border-color: var(--green); color: var(--green); }
 
-/* ── LOG ── */
-.log {
-  background: var(--s2); border: 1px solid var(--border);
-  border-radius: 10px; padding: 10px 12px;
-  font-family: 'IBM Plex Mono', monospace; font-size: 11px;
-  line-height: 1.7; max-height: 120px; overflow-y: auto;
-  scrollbar-width: none;
-}
-.log::-webkit-scrollbar { display: none; }
-.ll { color: var(--muted); }
-.ll.i { color: var(--blue); }
-.ll.ok { color: var(--accent); }
-.ll.e { color: var(--accent2); }
-.ll.w { color: var(--yellow); }
+  .cam-switch-row {
+    display: flex; gap: 8px;
+  }
+  .cam-switch-btn {
+    flex: 1; padding: 10px; border: 1px solid var(--border);
+    background: var(--bg); color: var(--text-dim);
+    font-family: var(--ui); font-size: 0.75rem; font-weight: 600;
+    letter-spacing: 2px; cursor: pointer; border-radius: 4px; transition: all 0.2s;
+  }
+  .cam-switch-btn.active { border-color: var(--green); color: var(--green); background: rgba(0,255,136,0.05); }
 
-/* ── SPINNER ── */
-.spinner {
-  width: 20px; height: 20px; border: 2px solid transparent;
-  border-top-color: currentColor; border-radius: 50%;
-  animation: spin .7s linear infinite; flex-shrink: 0;
-}
-@keyframes spin { to { transform: rotate(360deg); } }
+  /* ── RECEIVER PAGE ── */
+  .receiver-header {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 16px;
+  }
+  .cam-count { font-size: 0.75rem; color: var(--text-dim); }
+  .cam-count span { color: var(--green); font-size: 1.1rem; font-weight: bold; }
 
-/* ── QUALITY ── */
-.q-row { display: grid; grid-template-columns: repeat(3,1fr); gap: 6px; margin-bottom: 14px; }
-.qb {
-  padding: 8px 4px; text-align: center;
-  background: var(--s2); border: 1.5px solid var(--border);
-  border-radius: 8px; color: var(--muted);
-  font-size: 11px; font-weight: 700; cursor: pointer;
-  font-family: 'IBM Plex Mono', monospace; transition: all .15s;
-}
-.qb.active { border-color: var(--accent); color: var(--accent); background: rgba(61,255,154,.05); }
-.qb:active { transform: scale(.95); }
-.qb .qs { display: block; font-size: 9px; font-weight: 400; opacity: .6; margin-top: 2px; }
+  #cameraGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+    gap: 16px;
+  }
+  @media(max-width: 480px) { #cameraGrid { grid-template-columns: 1fr; } }
 
-/* reconnect notice */
-.reconnect-notice {
-  background: rgba(61,255,154,.07); border: 1px solid rgba(61,255,154,.2);
-  border-radius: 10px; padding: 12px 14px;
-  font-family: 'IBM Plex Mono', monospace; font-size: 11px;
-  color: var(--accent); margin-bottom: 14px; line-height: 1.6;
-  display: none;
-}
+  .cam-card {
+    background: #000; border: 1px solid var(--border); border-radius: 6px;
+    overflow: hidden; position: relative;
+  }
+  .cam-card:hover { border-color: var(--green-dim); }
+
+  .cam-card video { width: 100%; aspect-ratio: 16/9; display: block; object-fit: cover; background: #000; }
+
+  .cam-card-hud {
+    position: absolute; top: 0; left: 0; right: 0; bottom: 0; pointer-events: none;
+    display: flex; flex-direction: column; justify-content: space-between; padding: 10px;
+  }
+  .cam-card-top { display: flex; justify-content: space-between; align-items: flex-start; }
+  .cam-card-name {
+    background: rgba(0,0,0,0.7); padding: 4px 8px; border-radius: 3px;
+    font-size: 0.65rem; color: var(--green); letter-spacing: 2px; max-width: 60%;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .cam-card-status { font-size: 0.6rem; padding: 3px 8px; border-radius: 3px; letter-spacing: 1px; }
+  .cam-card-status.live { background: rgba(255,51,85,0.8); color: #fff; }
+  .cam-card-status.connecting { background: rgba(255,204,0,0.8); color: #000; }
+  .cam-card-status.offline { background: rgba(0,0,0,0.7); color: var(--text-dim); }
+
+  .cam-card-bottom {
+    display: flex; justify-content: space-between; align-items: flex-end;
+    pointer-events: all;
+  }
+  .cam-mini-diag { font-size: 0.58rem; color: rgba(200,230,200,0.6); }
+  .cam-flip-btn {
+    background: rgba(0,0,0,0.7); border: 1px solid rgba(0,255,136,0.3);
+    color: var(--green); font-size: 0.65rem; padding: 5px 10px;
+    cursor: pointer; border-radius: 3px; letter-spacing: 1px;
+    font-family: var(--mono); transition: all 0.2s;
+  }
+  .cam-flip-btn:hover { background: rgba(0,255,136,0.15); }
+
+  .no-cameras {
+    grid-column: 1/-1; text-align: center; padding: 60px;
+    color: var(--text-dim); font-size: 0.8rem; letter-spacing: 2px;
+  }
+  .no-cameras span { display: block; font-size: 3rem; margin-bottom: 16px; opacity: 0.3; }
+
+  /* ── SETUP PAGE ── */
+  .setup-page { max-width: 800px; margin: 0 auto; }
+  .setup-section {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 6px;
+    padding: 20px; margin-bottom: 16px;
+  }
+  .setup-section h3 {
+    font-family: var(--ui); font-weight: 700; letter-spacing: 3px;
+    color: var(--green); font-size: 0.9rem; margin-bottom: 16px; text-transform: uppercase;
+  }
+  .step {
+    display: flex; gap: 14px; margin-bottom: 14px; align-items: flex-start;
+  }
+  .step-num {
+    min-width: 28px; height: 28px; border-radius: 50%;
+    border: 2px solid var(--green-dim); display: flex; align-items: center; justify-content: center;
+    font-size: 0.75rem; color: var(--green); font-family: var(--ui); font-weight: 700; flex-shrink: 0;
+  }
+  .step-text { font-size: 0.78rem; color: var(--text); line-height: 1.7; }
+  .step-text strong { color: var(--green); }
+  .step-text code {
+    background: rgba(0,255,136,0.1); color: var(--green);
+    padding: 2px 6px; border-radius: 3px; font-size: 0.85em;
+  }
+
+  .warn-box {
+    background: rgba(255,204,0,0.08); border: 1px solid rgba(255,204,0,0.3);
+    border-radius: 4px; padding: 14px; font-size: 0.75rem; color: var(--yellow);
+    line-height: 1.7; margin-top: 8px;
+  }
+  .ok-box {
+    background: rgba(0,255,136,0.05); border: 1px solid rgba(0,255,136,0.2);
+    border-radius: 4px; padding: 14px; font-size: 0.75rem; color: var(--text);
+    line-height: 1.7; margin-top: 8px;
+  }
+  .feat-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+  }
+  @media(max-width:500px) { .feat-grid { grid-template-columns: 1fr; } }
+  .feat-item {
+    background: var(--bg); border: 1px solid var(--border); border-radius: 4px;
+    padding: 10px 14px; font-size: 0.72rem; color: var(--text-dim); line-height: 1.6;
+  }
+  .feat-item strong { color: var(--green); display: block; margin-bottom: 2px; font-family: var(--ui); letter-spacing: 1px; }
+
+  /* ── SCROLLBAR ── */
+  ::-webkit-scrollbar { width: 4px; } 
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border); }
+
+  /* ── STATUS BAR ── */
+  #statusBar {
+    position: fixed; bottom: 0; left: 0; right: 0;
+    background: var(--panel); border-top: 1px solid var(--border);
+    padding: 6px 16px; display: flex; gap: 20px; font-size: 0.65rem;
+    color: var(--text-dim); z-index: 200; flex-wrap: wrap;
+  }
+  #statusBar span { display: flex; align-items: center; gap: 6px; }
+  .sb-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--text-dim); }
+  .sb-dot.green { background: var(--green); box-shadow: 0 0 6px var(--green); }
+  .sb-dot.red { background: var(--red); }
+  .sb-dot.yellow { background: var(--yellow); }
+
+  /* notifications */
+  #toast {
+    position: fixed; top: 70px; right: 20px; z-index: 9000;
+    display: flex; flex-direction: column; gap: 8px; pointer-events: none;
+  }
+  .toast-msg {
+    background: var(--panel); border: 1px solid var(--green-dim);
+    padding: 10px 16px; border-radius: 4px; font-size: 0.72rem;
+    color: var(--text); max-width: 280px; animation: slideIn 0.3s ease, fadeOut 0.5s ease 3.5s forwards;
+  }
+  .toast-msg.err { border-color: var(--red); }
+  @keyframes slideIn { from{transform:translateX(40px);opacity:0} to{transform:translateX(0);opacity:1} }
+  @keyframes fadeOut { to{opacity:0;transform:translateX(20px)} }
+
+  /* server URL input */
+  .server-input-row {
+    display: flex; gap: 8px; margin-bottom: 12px;
+  }
+  .server-input {
+    flex: 1; background: var(--bg); border: 1px solid var(--border);
+    color: var(--text); padding: 10px 12px; font-family: var(--mono);
+    font-size: 0.8rem; border-radius: 4px; outline: none;
+  }
+  .server-input:focus { border-color: var(--green); }
+  .btn-sm {
+    padding: 8px 14px; border: none; cursor: pointer; border-radius: 4px;
+    font-family: var(--ui); font-size: 0.75rem; font-weight: 700; letter-spacing: 1px;
+  }
+  .btn-sm-green { background: var(--green); color: #000; }
+  .server-note { font-size: 0.68rem; color: var(--text-dim); line-height: 1.6; }
 </style>
 </head>
 <body>
-<div class="app">
 
-<!-- ════════════════════════════════════════════
-     SCREEN: ROLE SELECT
-════════════════════════════════════════════ -->
-<div class="screen active" id="sc-role">
-  <div class="hdr">
-    <div class="hdr-icon">📡</div>
+<!-- PIN LOCK -->
+<div id="pinOverlay">
+  <div class="pin-logo">LIVECAM</div>
+  <div class="pin-sub">SECURE ACCESS — ENTER PIN</div>
+  <div class="pin-dots">
+    <div class="pin-dot" id="pd0"></div>
+    <div class="pin-dot" id="pd1"></div>
+    <div class="pin-dot" id="pd2"></div>
+    <div class="pin-dot" id="pd3"></div>
+    <div class="pin-dot" id="pd4"></div>
+    <div class="pin-dot" id="pd5"></div>
+  </div>
+  <div class="pin-error" id="pinError"></div>
+  <div class="pin-grid">
+    <button class="pin-btn" onclick="pinKey('1')">1</button>
+    <button class="pin-btn" onclick="pinKey('2')">2</button>
+    <button class="pin-btn" onclick="pinKey('3')">3</button>
+    <button class="pin-btn" onclick="pinKey('4')">4</button>
+    <button class="pin-btn" onclick="pinKey('5')">5</button>
+    <button class="pin-btn" onclick="pinKey('6')">6</button>
+    <button class="pin-btn" onclick="pinKey('7')">7</button>
+    <button class="pin-btn" onclick="pinKey('8')">8</button>
+    <button class="pin-btn" onclick="pinKey('9')">9</button>
+    <button class="pin-btn btn-outline" onclick="pinKey('')" style="color:var(--text-dim)">⌫</button>
+    <button class="pin-btn" onclick="pinKey('0')">0</button>
+    <button class="pin-btn btn-outline" onclick="pinClear()" style="color:var(--red)">CLR</button>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<header>
+  <div class="brand">LIVECAM <span>REMOTE MONITOR SYSTEM v1.0</span></div>
+  <div class="header-status">
+    <span><span class="dot-live blink"></span>LIVE</span>
+    <span id="hdrTime">--:--:--</span>
+    <span id="hdrCams">0 CAM</span>
+  </div>
+</header>
+
+<div class="mode-bar">
+  <button class="mode-btn active" onclick="showPage('receiver')" id="btnReceiver">📺 RECEIVER</button>
+  <button class="mode-btn" onclick="showPage('sender')" id="btnSender">📷 SENDER</button>
+  <button class="mode-btn" onclick="showPage('setup')" id="btnSetup">⚙ SETUP</button>
+</div>
+
+<!-- ══ RECEIVER PAGE ══ -->
+<div class="page active" id="pageReceiver">
+  <div class="receiver-header">
     <div>
-      <div class="hdr h1"><span>Live</span>Cam</div>
-      <div class="hdr-sub">p2p · encrypted · persistent</div>
+      <div class="diag-title">CAMERA FEEDS</div>
+      <div class="cam-count">Active streams: <span id="activeCount">0</span></div>
     </div>
+    <button class="btn-sm btn-sm-green" onclick="refreshReceiverConnections()" style="border-radius:4px">↺ REFRESH</button>
   </div>
-
-  <div class="reconnect-notice" id="reconnectNotice">
-    ↩ Previous session found — reconnecting automatically…
-  </div>
-
-  <div class="role-grid">
-    <div class="role-card cam" onclick="chooseRole('cam')" tabindex="0">
-      <span class="rc-icon">📲</span>
-      <div class="rc-title">Camera</div>
-      <div class="rc-sub">Phone A · Send</div>
-    </div>
-    <div class="role-card view" onclick="chooseRole('view')" tabindex="0">
-      <span class="rc-icon">📺</span>
-      <div class="rc-title">Viewer</div>
-      <div class="rc-sub">Phone B · Watch</div>
-    </div>
-  </div>
-
-  <div class="panel">
-    <div class="panel-label">Quick Guide</div>
-    <div style="font-size:13px;line-height:1.8;color:var(--muted)">
-      <b style="color:var(--text)">Phone A</b> → Camera → Allow camera → share <b style="color:var(--accent)">4-digit code</b><br>
-      <b style="color:var(--text)">Phone B</b> → Viewer → enter code → done ✓<br>
-      <span style="color:var(--accent);font-size:11px;font-family:'IBM Plex Mono',monospace">Refresh-safe · auto-reconnects · background</span>
+  <div id="cameraGrid">
+    <div class="no-cameras">
+      <span>📷</span>
+      WAITING FOR CAMERA CONNECTIONS...<br><br>
+      Open this page on sender devices,<br>switch to <strong style="color:var(--green)">SENDER</strong> tab,<br>and allow camera permission.
     </div>
   </div>
 </div>
 
-<!-- ════════════════════════════════════════════
-     SCREEN: CAMERA (Phone A)
-════════════════════════════════════════════ -->
-<div class="screen" id="sc-cam">
-  <div class="hdr">
-    <div class="hdr-icon">📲</div>
+<!-- ══ SENDER PAGE ══ -->
+<div class="page" id="pageSender">
+  <div class="sender-wrap">
     <div>
-      <div class="hdr h1">Camera <span>Phone A</span></div>
-      <div class="hdr-sub">sending stream</div>
+      <div class="cam-preview-box">
+        <video id="localVideo" autoplay playsinline muted></video>
+        <div class="cam-overlay">
+          <div class="cam-label" id="senderCamLabel">◉ PREVIEW</div>
+          <div class="rec-badge"><span class="dot-live blink" id="senderBlink" style="display:none"></span><span id="senderStatusLabel">READY</span></div>
+        </div>
+      </div>
+      <br>
+      <div class="cam-switch-row">
+        <button class="cam-switch-btn active" id="btnBack" onclick="switchCamera('back')">⬛ BACK CAM</button>
+        <button class="cam-switch-btn" id="btnFront" onclick="switchCamera('front')">🤳 FRONT CAM</button>
+      </div>
+    </div>
+    <div class="diag-panel">
+      <div class="diag-title">DIAGNOSTICS</div>
+      <div class="diag-row"><span class="diag-key">CAMERA PERM</span><span class="diag-val" id="dPermission">—</span></div>
+      <div class="diag-row"><span class="diag-key">CAMERA FACING</span><span class="diag-val" id="dFacing">—</span></div>
+      <div class="diag-row"><span class="diag-key">RESOLUTION</span><span class="diag-val" id="dResolution">—</span></div>
+      <div class="diag-row"><span class="diag-key">FPS</span><span class="diag-val" id="dFps">—</span></div>
+      <div class="diag-row"><span class="diag-key">SIGNAL SERVER</span><span class="diag-val" id="dServer">—</span></div>
+      <div class="diag-row"><span class="diag-key">CONNECTION</span><span class="diag-val" id="dConn">—</span></div>
+      <div class="diag-row"><span class="diag-key">STREAM ID</span><span class="diag-val" id="dStreamId" style="font-size:0.6rem">—</span></div>
+      <div class="diag-row"><span class="diag-key">NETWORK TYPE</span><span class="diag-val" id="dNetType">—</span></div>
+      <div class="diag-row"><span class="diag-key">UPTIME</span><span class="diag-val" id="dUptime">00:00:00</span></div>
+
+      <hr style="border-color:var(--border); margin: 6px 0">
+
+      <div class="server-input-row">
+        <input class="server-input" id="sigServerInput" placeholder="Signaling server URL" value="">
+        <button class="btn-sm btn-sm-green" onclick="saveServer()">SET</button>
+      </div>
+      <div class="server-note">Enter your signaling server URL (see Setup tab). Free option: use PeerJS cloud or your own server.</div>
+
+      <button class="btn btn-green" id="btnStartSender" onclick="startSender()">▶ START CAMERA</button>
+      <button class="btn btn-red" id="btnStopSender" onclick="stopSender()" style="display:none; margin-top:8px">■ STOP</button>
     </div>
   </div>
+</div>
 
-  <div class="status-bar">
-    <div class="sdot" id="camSdot"></div>
-    <span class="stext" id="camStext">Starting…</span>
-  </div>
+<!-- ══ SETUP PAGE ══ -->
+<div class="page" id="pageSetup">
+  <div class="setup-page">
 
-  <!-- Video preview -->
-  <div class="panel">
-    <div class="panel-label">Preview</div>
-    <div class="vid-wrap">
-      <video id="localVid" autoplay muted playsinline></video>
-      <div class="vid-ph" id="localPh"><span class="ph-ico">📷</span><span>Inactive</span></div>
-      <div class="live-pill" id="camLive">● LIVE</div>
-    </div>
-
-    <!-- Quality -->
-    <div style="margin-top:12px;">
-      <div class="panel-label" style="margin-bottom:6px;">Quality</div>
-      <div class="q-row">
-        <div class="qb" onclick="setQ('low')">360p<span class="qs">Low data</span></div>
-        <div class="qb active" onclick="setQ('med')">720p<span class="qs">Balanced</span></div>
-        <div class="qb" onclick="setQ('hi')">1080p<span class="qs">Best</span></div>
+    <div class="setup-section">
+      <h3>🚀 How It Works</h3>
+      <div class="ok-box">
+        This app uses <strong>WebRTC</strong> — the same technology used by Google Meet and WhatsApp video calls — to stream live video directly from sender phones to your receiver screen, peer-to-peer over the internet. A small "signaling server" is needed to introduce devices to each other (but video goes directly between devices for lowest latency).
       </div>
     </div>
 
-    <div class="stats-grid">
-      <div class="stat"><div class="stat-l">CAMERA</div><div class="stat-v" id="s-cam">—</div></div>
-      <div class="stat"><div class="stat-l">RESOLUTION</div><div class="stat-v" id="s-res">—</div></div>
-      <div class="stat"><div class="stat-l">NETWORK</div><div class="stat-v" id="s-net">—</div></div>
-      <div class="stat"><div class="stat-l">BITRATE ↑</div><div class="stat-v" id="s-bit">—</div></div>
+    <div class="setup-section">
+      <h3>⚡ Quickest Free Setup (PeerJS Cloud)</h3>
+      <div class="step"><div class="step-num">1</div><div class="step-text">
+        <strong>No server needed for testing!</strong> This app uses PeerJS's free public cloud server by default. Just open this HTML file in a browser on any device.
+      </div></div>
+      <div class="step"><div class="step-num">2</div><div class="step-text">
+        On your <strong>receiver phone (Phone B)</strong>: Open this file in Chrome, tap <strong>RECEIVER</strong> tab. Leave it open.
+      </div></div>
+      <div class="step"><div class="step-num">3</div><div class="step-text">
+        On your <strong>sender phone (Phone A)</strong>: Open this file in Chrome, tap <strong>SENDER</strong> tab, then tap <strong>▶ START CAMERA</strong>.
+      </div></div>
+      <div class="step"><div class="step-num">4</div><div class="step-text">
+        When Chrome asks for camera permission — tap <strong>Allow</strong>. The stream connects automatically. No codes needed.
+      </div></div>
+      <div class="step"><div class="step-num">5</div><div class="step-text">
+        On the receiver screen, <strong>the camera feed appears automatically</strong> within seconds. You can switch front/back camera using the button on each feed.
+      </div></div>
+      <div class="warn-box">
+        ⚠ The PeerJS free server may be slow or unavailable at times. For reliable 24/7 use, host your own signaling server (see below).
+      </div>
+    </div>
+
+    <div class="setup-section">
+      <h3>🌐 Host Your Own Signaling Server (Recommended)</h3>
+      <div class="step"><div class="step-num">1</div><div class="step-text">
+        Get a free server: <strong>Render.com</strong>, <strong>Railway.app</strong>, or <strong>Glitch.com</strong> all offer free Node.js hosting.
+      </div></div>
+      <div class="step"><div class="step-num">2</div><div class="step-text">
+        Create a new Node.js project and paste this <code>server.js</code>:
+        <br><br>
+        <code style="display:block;background:rgba(0,0,0,0.4);padding:12px;border-radius:4px;line-height:1.8;white-space:pre-wrap">const { PeerServer } = require('peer');
+const server = PeerServer({ port: process.env.PORT || 9000, path: '/livecam' });
+console.log('Signaling server running');</code>
+      </div></div>
+      <div class="step"><div class="step-num">3</div><div class="step-text">
+        Add <code>package.json</code>:
+        <br><br>
+        <code style="display:block;background:rgba(0,0,0,0.4);padding:12px;border-radius:4px;line-height:1.8">{"name":"livecam","scripts":{"start":"node server.js"},"dependencies":{"peer":"^0.7.0"}}</code>
+      </div></div>
+      <div class="step"><div class="step-num">4</div><div class="step-text">
+        Deploy to Render/Railway. Get your URL like <code>https://mylivecam.onrender.com</code>.
+      </div></div>
+      <div class="step"><div class="step-num">5</div><div class="step-text">
+        In the <strong>SENDER tab</strong>, enter your server URL in the input box and tap <strong>SET</strong>. Done!
+      </div></div>
+    </div>
+
+    <div class="setup-section">
+      <h3>📱 How to Share This App on Internet</h3>
+      <div class="step"><div class="step-num">1</div><div class="step-text">
+        Upload <code>livecam.html</code> to <strong>Netlify Drop</strong> (netlify.com/drop) — drag & drop, get a public URL in 30 seconds. Free forever.
+      </div></div>
+      <div class="step"><div class="step-num">2</div><div class="step-text">
+        Or use <strong>GitHub Pages</strong>: Create a repo, upload the file, enable Pages. Get a URL like <code>yourusername.github.io/livecam</code>.
+      </div></div>
+      <div class="step"><div class="step-num">3</div><div class="step-text">
+        Open the URL on all your phones. <strong>HTTPS is required</strong> for camera access — both Netlify and GitHub Pages give HTTPS free.
+      </div></div>
+    </div>
+
+    <div class="setup-section">
+      <h3>✅ Features</h3>
+      <div class="feat-grid">
+        <div class="feat-item"><strong>AUTO CONNECT</strong>Once camera permission is granted, stream starts automatically — no codes.</div>
+        <div class="feat-item"><strong>MULTI CAMERA</strong>Up to 10+ cameras simultaneously. Each gets its own feed tile.</div>
+        <div class="feat-item"><strong>CAMERA FLIP</strong>Tap the flip button on any feed to switch front/back camera remotely.</div>
+        <div class="feat-item"><strong>PIN LOCK</strong>Receiver locked with PIN 225400. Unlock once, stays unlocked.</div>
+        <div class="feat-item"><strong>AUTO RECONNECT</strong>If connection drops, sender keeps retrying every 5 seconds.</div>
+        <div class="feat-item"><strong>DIAGNOSTICS</strong>Live stats: permission, resolution, FPS, network, uptime per camera.</div>
+        <div class="feat-item"><strong>LOW LATENCY</strong>Direct P2P WebRTC — typically under 300ms on good connections.</div>
+        <div class="feat-item"><strong>HD QUALITY</strong>720p default, upgradeable to 1080p with good bandwidth.</div>
+      </div>
+    </div>
+
+    <div class="setup-section">
+      <h3>⚠ Important Notes & Limitations</h3>
+      <div class="warn-box">
+        <strong>HTTPS Required:</strong> Camera permission only works on HTTPS pages (or localhost). Must host on Netlify/GitHub Pages — not local file://<br><br>
+        <strong>Same Page on All Devices:</strong> Every device (sender and receiver) must open the same URL.<br><br>
+        <strong>Bandwidth:</strong> Each camera uses ~1-3 Mbps. 10 cameras = 10-30 Mbps on the receiver's connection.<br><br>
+        <strong>Battery Drain:</strong> Streaming video drains battery quickly on sender phones. Keep them plugged in.<br><br>
+        <strong>Mobile Chrome:</strong> Use Chrome on Android. Safari on iOS may have limitations.<br><br>
+        <strong>Background:</strong> On mobile, browsers may pause when the screen locks. Keep screens on while streaming.<br><br>
+        <strong>PeerJS Free Limit:</strong> PeerJS cloud has connection limits. Self-host for reliable use.
+      </div>
     </div>
   </div>
-
-  <!-- 4-digit code -->
-  <div class="panel" id="camCodePanel">
-    <div class="panel-label">Pairing Code — tell Phone B</div>
-    <div class="code-display" id="codeDisplay">
-      <div class="digit-box" id="d0">—</div>
-      <div class="digit-box" id="d1">—</div>
-      <div class="digit-box" id="d2">—</div>
-      <div class="digit-box" id="d3">—</div>
-    </div>
-    <div class="code-hint" id="codeHint">Starting camera…</div>
-  </div>
-
-  <div class="panel">
-    <div class="panel-label">Log</div>
-    <div class="log" id="camLog"></div>
-  </div>
-
-  <button class="btn btn-red" onclick="disconnect()">⏹ Disconnect & Stop</button>
-  <button class="btn btn-ghost" style="margin-top:8px" onclick="goHome()">← Back to Home</button>
 </div>
 
-<!-- ════════════════════════════════════════════
-     SCREEN: VIEWER (Phone B)
-════════════════════════════════════════════ -->
-<div class="screen" id="sc-view">
-  <div class="hdr">
-    <div class="hdr-icon">📺</div>
-    <div>
-      <div class="hdr h1">Viewer <span>Phone B</span></div>
-      <div class="hdr-sub">receiving stream</div>
-    </div>
-  </div>
-
-  <div class="status-bar">
-    <div class="sdot" id="viewSdot"></div>
-    <span class="stext" id="viewStext">Enter pairing code</span>
-  </div>
-
-  <!-- Pin entry (shown before connect) -->
-  <div class="panel" id="pinPanel">
-    <div class="panel-label">Enter 4-Digit Code from Phone A</div>
-    <div class="pin-row">
-      <input class="pin-digit" id="p0" maxlength="1" inputmode="numeric" pattern="[0-9]" autocomplete="off"/>
-      <input class="pin-digit" id="p1" maxlength="1" inputmode="numeric" pattern="[0-9]" autocomplete="off"/>
-      <input class="pin-digit" id="p2" maxlength="1" inputmode="numeric" pattern="[0-9]" autocomplete="off"/>
-      <input class="pin-digit" id="p3" maxlength="1" inputmode="numeric" pattern="[0-9]" autocomplete="off"/>
-    </div>
-    <button class="btn btn-blue" id="connectBtn" onclick="connectToCode()" disabled>
-      Connect
-    </button>
-  </div>
-
-  <!-- Video (shown after connect) -->
-  <div class="panel" id="viewVidPanel" style="display:none">
-    <div class="panel-label">Live Stream</div>
-    <div class="vid-wrap">
-      <video id="remoteVid" autoplay playsinline></video>
-      <div class="vid-ph" id="remotePh"><span class="ph-ico">📺</span><span>Buffering…</span></div>
-      <div class="live-pill" id="viewLive">● LIVE</div>
-    </div>
-    <div class="stats-grid">
-      <div class="stat"><div class="stat-l">STREAM</div><div class="stat-v" id="vs-str">—</div></div>
-      <div class="stat"><div class="stat-l">RESOLUTION</div><div class="stat-v" id="vs-res">—</div></div>
-      <div class="stat"><div class="stat-l">LATENCY</div><div class="stat-v" id="vs-lat">—</div></div>
-      <div class="stat"><div class="stat-l">BITRATE ↓</div><div class="stat-v" id="vs-bit">—</div></div>
-    </div>
-  </div>
-
-  <div class="panel">
-    <div class="panel-label">Log</div>
-    <div class="log" id="viewLog"></div>
-  </div>
-
-  <button class="btn btn-ghost" onclick="goHome()">← Back to Home</button>
+<div id="statusBar">
+  <span><span class="sb-dot" id="sbServer"></span>SERVER</span>
+  <span><span class="sb-dot" id="sbCam"></span>CAMERA</span>
+  <span><span class="sb-dot" id="sbStream"></span>STREAM</span>
+  <span id="sbIp">IP: —</span>
+  <span id="sbNet">NET: —</span>
+  <span id="sbFps">FPS: —</span>
 </div>
 
-</div><!-- .app -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.4/peerjs.min.js"></script>
+<script>
+// ═══════════════════════════════════════════════════════════════════════════════
+// ARCHITECTURE FIX: SENDER calls RECEIVER (not the other way around).
+// Sender has the real camera stream → sender initiates the WebRTC call → 
+// receiver just answers and displays. This guarantees live video flows correctly.
+//
+// Discovery: Sender opens a data connection to a fixed well-known "registry" 
+// peer ID. Receiver listens on that same ID and hands out streams to all senders.
+// ═══════════════════════════════════════════════════════════════════════════════
 
-<!-- Firebase + App Script -->
-<script type="module">
-// ══════════════════════════════════════════════════════════════════════════════
-// FIREBASE CONFIG
-// Using a public demo project — you can replace with your own free Firebase project
-// ══════════════════════════════════════════════════════════════════════════════
-import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js';
-import { getDatabase, ref, set, get, onValue, remove, onDisconnect, serverTimestamp }
-  from 'https://www.gstatic.com/firebasejs/12.10.0/firebase-database.js';
+// ─── CONSTANTS ───────────────────────────────────────────────────────────────
+const CORRECT_PIN = '225400';
+// The receiver always uses this fixed peer ID so senders can find it
+const RECEIVER_PEER_ID = 'livecam-receiver-main-v1';
 
-const firebaseConfig = {
-  apiKey: "AIzaSyBJceKGsgRSyclrnYYTv9TC5qFZACZaLY0",
-  authDomain: "webrtccam.firebaseapp.com",
-  databaseURL: "https://webrtccam-default-rtdb.firebaseio.com",
-  projectId: "webrtccam",
-  storageBucket: "webrtccam.firebasestorage.app",
-  messagingSenderId: "278963365192",
-  appId: "1:278963365192:web:3a06dba93e810ff62a3f7d",
-  measurementId: "G-8QGXBDVYPE"
-};
+// ─── PIN LOCK ────────────────────────────────────────────────────────────────
+let pinEntry = '';
+const pinUnlockedKey = 'livecam_unlocked_v2';
 
-let app, db;
-try {
-  app = initializeApp(firebaseConfig);
-  db = getDatabase(app);
-} catch(e) {
-  console.error('Firebase init error:', e);
+function checkPinOnLoad() {
+  if (localStorage.getItem(pinUnlockedKey) === '1') {
+    document.getElementById('pinOverlay').classList.add('hidden');
+  }
+}
+function pinKey(k) {
+  if (k === '') { pinEntry = pinEntry.slice(0, -1); }
+  else { if (pinEntry.length >= 6) return; pinEntry += k; }
+  updatePinDots();
+  if (pinEntry.length === 6) checkPin();
+}
+function pinClear() { pinEntry = ''; updatePinDots(); document.getElementById('pinError').textContent = ''; }
+function updatePinDots() {
+  for (let i = 0; i < 6; i++)
+    document.getElementById('pd' + i).classList.toggle('filled', i < pinEntry.length);
+}
+function checkPin() {
+  if (pinEntry === CORRECT_PIN) {
+    localStorage.setItem(pinUnlockedKey, '1');
+    document.getElementById('pinOverlay').classList.add('hidden');
+    toast('Access granted ✓');
+  } else {
+    document.getElementById('pinError').textContent = '✕ INCORRECT PIN';
+    pinEntry = ''; updatePinDots();
+    setTimeout(() => { document.getElementById('pinError').textContent = ''; }, 1500);
+  }
 }
 
-// ── ICE servers ──────────────────────────────────────────────────────────────
-const ICE = {
-  iceServers: [
+// ─── TOAST ───────────────────────────────────────────────────────────────────
+function toast(msg, isErr = false) {
+  const el = document.createElement('div');
+  el.className = 'toast-msg' + (isErr ? ' err' : '');
+  el.textContent = msg;
+  document.getElementById('toast').appendChild(el);
+  setTimeout(() => el.remove(), 4200);
+}
+
+// ─── PAGE TABS ───────────────────────────────────────────────────────────────
+function showPage(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+  const cap = name.charAt(0).toUpperCase() + name.slice(1);
+  document.getElementById('page' + cap).classList.add('active');
+  document.getElementById('btn' + cap).classList.add('active');
+}
+
+// ─── CLOCK ───────────────────────────────────────────────────────────────────
+setInterval(() => {
+  document.getElementById('hdrTime').textContent = new Date().toTimeString().split(' ')[0];
+}, 1000);
+
+// ─── SERVER CONFIG ────────────────────────────────────────────────────────────
+let sigServerConfig = null;
+function loadServerConfig() {
+  const saved = localStorage.getItem('livecam_server');
+  if (saved) { document.getElementById('sigServerInput').value = saved; parseServerConfig(saved); }
+}
+function saveServer() {
+  const val = document.getElementById('sigServerInput').value.trim();
+  localStorage.setItem('livecam_server', val);
+  parseServerConfig(val);
+  toast('Server saved — restart camera/receiver to apply.');
+}
+function parseServerConfig(url) {
+  if (!url) { sigServerConfig = null; return; }
+  try {
+    const u = new URL(url);
+    sigServerConfig = { host: u.hostname, port: u.port || (u.protocol === 'https:' ? 443 : 80), path: u.pathname || '/livecam', secure: u.protocol === 'https:' };
+  } catch(e) { sigServerConfig = null; }
+}
+function makePeerOptions() {
+  // Always use reliable STUN/TURN ICE servers for internet traversal
+  const iceServers = [
     { urls: 'stun:stun.l.google.com:19302' },
     { urls: 'stun:stun1.l.google.com:19302' },
-    { urls: 'stun:stun.services.mozilla.com' },
-    { urls: 'turn:openrelay.metered.ca:80',    username: 'openrelayproject', credential: 'openrelayproject' },
-    { urls: 'turn:openrelay.metered.ca:443',   username: 'openrelayproject', credential: 'openrelayproject' },
-    { urls: 'turn:openrelay.metered.ca:443?transport=tcp', username: 'openrelayproject', credential: 'openrelayproject' }
-  ],
-  iceCandidatePoolSize: 10,
-  bundlePolicy: 'max-bundle',
-  rtcpMuxPolicy: 'require'
-};
-
-const QUALITIES = {
-  low: { width:640,  height:360,  frameRate:20, bitrate:400000  },
-  med: { width:1280, height:720,  frameRate:30, bitrate:1200000 },
-  hi:  { width:1920, height:1080, frameRate:30, bitrate:2500000 }
-};
-
-let role = null, pc = null, localStream = null;
-let currentCode = null, selectedQ = 'med';
-let statsInterval = null, prevB = 0, prevTs = Date.now();
-let sessionKey = null; // localStorage key for reconnect
-
-// ── Screen helper ─────────────────────────────────────────────────────────────
-function show(id) {
-  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-  document.getElementById(id).classList.add('active');
+    { urls: 'stun:stun2.l.google.com:19302' }
+  ];
+  const base = sigServerConfig ? { ...sigServerConfig } : {};
+  return { ...base, config: { iceServers } };
 }
 
-// ── Log ───────────────────────────────────────────────────────────────────────
-function L(boxId, msg, t='') {
-  const b = document.getElementById(boxId);
-  if (!b) return;
-  const d = document.createElement('div');
-  d.className = 'll ' + t;
-  d.textContent = '[' + new Date().toLocaleTimeString('en',{hour12:false}) + '] ' + msg;
-  b.appendChild(d);
-  b.scrollTop = b.scrollHeight;
-}
-const clog = (m,t) => L('camLog',m,t);
-const vlog = (m,t) => L('viewLog',m,t);
+// ═══════════════════════════════════════════════════════════════════════════════
+// SENDER
+// ═══════════════════════════════════════════════════════════════════════════════
+let localStream = null;
+let senderPeer = null;
+let senderActive = false;
+let senderFacing = 'environment';
+let senderStartTime = null;
+let senderUptimeInterval = null;
+let senderRetryTimer = null;
+let senderPeerId = null;
+// Map of receiverPeerId → MediaConnection (the call we placed to receiver)
+const outgoingCalls = new Map();
 
-// ── Status helpers ────────────────────────────────────────────────────────────
-function camStatus(msg, s='') {
-  const dot = document.getElementById('camSdot'), tx = document.getElementById('camStext');
-  dot.className = 'sdot ' + s; tx.className = 'stext ' + s; tx.textContent = msg;
-}
-function viewStatus(msg, s='') {
-  const dot = document.getElementById('viewSdot'), tx = document.getElementById('viewStext');
-  dot.className = 'sdot ' + s; tx.className = 'stext ' + s; tx.textContent = msg;
-}
-
-// ── Quality ───────────────────────────────────────────────────────────────────
-window.setQ = q => {
-  selectedQ = q;
-  document.querySelectorAll('.qb').forEach((b,i) => {
-    b.classList.toggle('active', ['low','med','hi'][i] === q);
-  });
-};
-
-// ── Role choice ───────────────────────────────────────────────────────────────
-window.chooseRole = r => {
-  role = r;
-  if (!db) {
-    alert('⚠️ Firebase not configured!\n\nYou must create a free Firebase project.\nSee the instructions panel below.');
-    return;
+function getSenderPeerId() {
+  let id = localStorage.getItem('livecam_my_sender_id');
+  if (!id) {
+    id = 'livecam-cam-' + Math.random().toString(36).substr(2, 9);
+    localStorage.setItem('livecam_my_sender_id', id);
   }
-  if (r === 'cam') startCam();
-  else startViewer();
-};
-
-window.goHome = () => { show('sc-role'); cleanup(); };
-
-// ── Check for saved session on load ──────────────────────────────────────────
-window.addEventListener('load', () => {
-  const saved = localStorage.getItem('livecam_session');
-  if (saved) {
-    try {
-      const s = JSON.parse(saved);
-      if (Date.now() - s.ts < 3600000) { // 1 hour
-        document.getElementById('reconnectNotice').style.display = 'block';
-        // auto-reconnect
-        setTimeout(() => {
-          if (s.role === 'cam') { role = 'cam'; startCam(s.code); }
-          else { role = 'view'; startViewer(s.code); }
-        }, 800);
-      } else { localStorage.removeItem('livecam_session'); }
-    } catch { localStorage.removeItem('livecam_session'); }
-  }
-  if (!firebaseConfig.databaseURL.includes('demo')) return;
-  // Show setup notice if still using demo config
-});
-
-function saveSession(r, code) {
-  localStorage.setItem('livecam_session', JSON.stringify({ role:r, code, ts:Date.now() }));
+  return id;
 }
 
-// ══════════════════════════════════════════════════════════════════════════════
-//  CAMERA PHONE (Sender)
-// ══════════════════════════════════════════════════════════════════════════════
-async function startCam(savedCode) {
-  show('sc-cam');
-  camStatus('Requesting camera…', 'connecting');
-  clog('Starting camera phone…', 'i');
+async function startSender() {
+  if (senderActive) return;
+  senderActive = true;
+  document.getElementById('btnStartSender').disabled = true;
+  setDiag('dPermission', 'REQUESTING...', 'warn');
 
-  // Generate or reuse 4-digit code
-  const code = savedCode || String(Math.floor(1000 + Math.random() * 9000));
-  currentCode = code;
-  displayCode(code);
-  saveSession('cam', code);
-
-  // Network info
-  if (navigator.connection) {
-    const c = navigator.connection;
-    const el = document.getElementById('s-net');
-    el.textContent = (c.effectiveType || c.type || '—').toUpperCase();
-    el.className = 'stat-v ' + (['4g'].includes(c.effectiveType) ? 'ok' : 'warn');
-  }
-
-  // Request camera
-  const q = QUALITIES[selectedQ];
   try {
     localStream = await navigator.mediaDevices.getUserMedia({
-      video: {
-        width: { ideal: q.width }, height: { ideal: q.height },
-        frameRate: { ideal: q.frameRate }, facingMode: 'environment'
-      },
+      video: { facingMode: senderFacing, width: { ideal: 1280 }, height: { ideal: 720 }, frameRate: { ideal: 30 } },
       audio: false
     });
+    document.getElementById('localVideo').srcObject = localStream;
 
-    const vid = document.getElementById('localVid');
-    vid.srcObject = localStream;
-    document.getElementById('localPh').style.display = 'none';
+    const track = localStream.getVideoTracks()[0];
+    const s = track.getSettings();
+    setDiag('dPermission', 'GRANTED ✓', 'ok');
+    setDiag('dFacing', s.facingMode === 'user' ? 'FRONT' : 'BACK');
+    setDiag('dResolution', `${s.width||'?'}×${s.height||'?'}`);
+    setDiag('dFps', (s.frameRate||'?') + ' fps');
 
-    const settings = localStream.getVideoTracks()[0].getSettings();
-    document.getElementById('s-cam').textContent = 'ACTIVE';
-    document.getElementById('s-cam').className = 'stat-v ok';
-    document.getElementById('s-res').textContent = settings.width + '×' + settings.height;
-    clog('Camera: ' + settings.width + '×' + settings.height + ' @' + settings.frameRate + 'fps', 'ok');
-    camStatus('Camera active — waiting for viewer…', '');
+    document.getElementById('btnStopSender').style.display = 'block';
+    document.getElementById('btnStartSender').style.display = 'none';
+    document.getElementById('senderBlink').style.display = 'inline-block';
+    document.getElementById('sbCam').className = 'sb-dot green';
+    document.getElementById('sbFps').textContent = 'FPS: ' + (s.frameRate || '?');
 
-    document.getElementById('codeHint').textContent = 'Give this code to Phone B';
+    if (navigator.connection) {
+      const nc = navigator.connection;
+      setDiag('dNetType', (nc.effectiveType||'?').toUpperCase());
+      document.getElementById('sbNet').textContent = 'NET: ' + (nc.effectiveType||'?');
+    }
 
-    // Listen for viewer joining
-    listenForViewer(code);
+    senderStartTime = Date.now();
+    senderUptimeInterval = setInterval(updateUptime, 1000);
+    toast('Camera started ✓');
+    connectSenderPeer();
 
   } catch (err) {
-    document.getElementById('s-cam').textContent = 'DENIED';
-    document.getElementById('s-cam').className = 'stat-v err';
-    camStatus('Camera denied — check permissions', 'err');
-    clog('Camera error: ' + err.message, 'e');
-    alert('Camera access denied.\n\nOn Android Chrome:\n1. Tap the lock icon in address bar\n2. Set Camera to Allow\n3. Refresh the page');
+    senderActive = false;
+    document.getElementById('btnStartSender').disabled = false;
+    setDiag('dPermission', 'DENIED ✗', 'err');
+    toast('Camera error: ' + err.message, true);
   }
 }
 
-function displayCode(code) {
-  for (let i = 0; i < 4; i++) {
-    const el = document.getElementById('d' + i);
-    el.textContent = code[i];
-    el.classList.add('filled');
-  }
-}
+function connectSenderPeer() {
+  if (senderRetryTimer) clearTimeout(senderRetryTimer);
+  senderPeerId = getSenderPeerId();
 
-async function listenForViewer(code) {
-  const roomRef = ref(db, 'rooms/' + code);
-  clog('Waiting for viewer on room ' + code + '…', 'i');
+  setDiag('dStreamId', senderPeerId);
+  setDiag('dServer', 'CONNECTING...', 'warn');
+  document.getElementById('sbServer').className = 'sb-dot yellow';
 
-  // Clean up old room data
-  await set(ref(db, 'rooms/' + code + '/offer'), null);
-  await set(ref(db, 'rooms/' + code + '/answer'), null);
-  await set(ref(db, 'rooms/' + code + '/iceCam'), null);
-  await set(ref(db, 'rooms/' + code + '/iceView'), null);
+  if (senderPeer) { try { senderPeer.destroy(); } catch(e){} }
 
-  // Watch for answer from viewer
-  onValue(ref(db, 'rooms/' + code + '/answer'), async snap => {
-    if (!snap.exists()) return;
-    const answer = snap.val();
-    if (pc && pc.currentRemoteDescription) return; // already set
+  senderPeer = new Peer(senderPeerId, makePeerOptions());
 
-    clog('Viewer connected — completing handshake…', 'i');
-    camStatus('Viewer found — connecting…', 'connecting');
-
-    try {
-      await pc.setRemoteDescription(new RTCSessionDescription(answer));
-      clog('Remote description set ✓', 'ok');
-    } catch (e) { clog('Answer error: ' + e.message, 'e'); }
+  senderPeer.on('open', (id) => {
+    setDiag('dServer', 'CONNECTED ✓', 'ok');
+    setDiag('dConn', 'CALLING RECEIVER...', 'warn');
+    document.getElementById('sbServer').className = 'sb-dot green';
+    toast('Peer server connected ✓ — calling receiver...');
+    // Now call the fixed receiver ID — this is the KEY fix
+    callReceiver(RECEIVER_PEER_ID);
   });
 
-  // Watch for ICE from viewer
-  onValue(ref(db, 'rooms/' + code + '/iceView'), async snap => {
-    if (!snap.exists() || !pc) return;
-    const candidates = snap.val();
-    for (const k in candidates) {
-      try {
-        const c = candidates[k];
-        if (c && c.candidate) await pc.addIceCandidate(new RTCIceCandidate(c));
-      } catch {}
-    }
-  });
-
-  // Create PC and offer
-  await createCamPC(code);
-}
-
-async function createCamPC(code) {
-  pc = new RTCPeerConnection(ICE);
-  const q = QUALITIES[selectedQ];
-
-  localStream.getTracks().forEach(track => {
-    pc.addTrack(track, localStream);
-  });
-
-  // Set encoding constraints for quality
-  pc.getSenders().forEach(sender => {
-    if (sender.track && sender.track.kind === 'video') {
-      const p = sender.getParameters();
-      if (p.encodings && p.encodings.length > 0) {
-        p.encodings[0].maxBitrate = q.bitrate;
-      } else {
-        p.encodings = [{ maxBitrate: q.bitrate, networkPriority: 'high', priority: 'high' }];
-      }
-      sender.setParameters(p).catch(() => {});
-    }
-  });
-
-  // ICE candidates → Firebase
-  let iceCandidates = {};
-  let iceIdx = 0;
-  pc.onicecandidate = e => {
-    if (e.candidate) {
-      iceCandidates['c' + iceIdx++] = e.candidate.toJSON();
-      set(ref(db, 'rooms/' + code + '/iceCam'), iceCandidates);
-    }
-  };
-
-  pc.oniceconnectionstatechange = () => {
-    clog('ICE: ' + pc.iceConnectionState);
-    if (pc.iceConnectionState === 'connected' || pc.iceConnectionState === 'completed') {
-      camStatus('🟢 Viewer connected — streaming!', 'on');
-      document.getElementById('camLive').style.display = 'block';
-      startCamStats();
-    } else if (pc.iceConnectionState === 'failed') {
-      camStatus('Connection failed — retrying…', 'err');
-      clog('ICE failed — attempting restart', 'w');
-      pc.restartIce();
-    } else if (pc.iceConnectionState === 'disconnected') {
-      camStatus('Viewer disconnected — waiting…', 'connecting');
-      document.getElementById('camLive').style.display = 'none';
-      clog('Viewer disconnected', 'w');
-    }
-  };
-
-  const offer = await pc.createOffer({
-    offerToReceiveAudio: false,
-    offerToReceiveVideo: false
-  });
-
-  // Patch SDP for better quality: remove bandwidth limits, prefer H264
-  offer.sdp = patchSDP(offer.sdp, q.bitrate);
-  await pc.setLocalDescription(offer);
-
-  // Push offer to Firebase
-  await set(ref(db, 'rooms/' + code + '/offer'), { type: offer.type, sdp: offer.sdp });
-  clog('Offer published ✓', 'ok');
-}
-
-// ══════════════════════════════════════════════════════════════════════════════
-//  VIEWER PHONE (Receiver)
-// ══════════════════════════════════════════════════════════════════════════════
-function startViewer(savedCode) {
-  show('sc-view');
-  vlog('Viewer ready', 'i');
-  viewStatus('Enter 4-digit code from Phone A', '');
-
-  if (savedCode) {
-    // Auto-fill and connect
-    for (let i = 0; i < 4; i++) {
-      const el = document.getElementById('p' + i);
-      el.value = savedCode[i];
-      el.classList.add('filled-r');
-    }
-    document.getElementById('connectBtn').disabled = false;
-    setTimeout(() => connectToCode(savedCode), 500);
-  } else {
-    setupPinInput();
-  }
-}
-
-function setupPinInput() {
-  for (let i = 0; i < 4; i++) {
-    const el = document.getElementById('p' + i);
-    el.addEventListener('input', e => {
-      const v = e.target.value.replace(/\D/g,'');
-      e.target.value = v;
-      if (v) {
-        e.target.classList.add('filled-r');
-        if (i < 3) document.getElementById('p' + (i+1)).focus();
-      } else {
-        e.target.classList.remove('filled-r');
-      }
-      // enable connect when all 4 filled
-      const all = [0,1,2,3].every(j => document.getElementById('p'+j).value.length === 1);
-      document.getElementById('connectBtn').disabled = !all;
+  // Listen for data connections FROM receiver (for camera flip commands)
+  senderPeer.on('connection', (conn) => {
+    conn.on('data', (data) => {
+      if (data && data.type === 'flipCamera') switchCamera(data.facing);
     });
-    el.addEventListener('keydown', e => {
-      if (e.key === 'Backspace' && !e.target.value && i > 0) {
-        document.getElementById('p' + (i-1)).focus();
-      }
-    });
-  }
+  });
+
+  senderPeer.on('disconnected', () => {
+    setDiag('dServer', 'DISCONNECTED', 'err');
+    document.getElementById('sbServer').className = 'sb-dot red';
+    senderRetryTimer = setTimeout(() => {
+      if (senderActive) { toast('Reconnecting...'); senderPeer.reconnect(); }
+    }, 5000);
+  });
+
+  senderPeer.on('error', (err) => {
+    console.warn('Sender peer error:', err.type, err.message);
+    if (err.type === 'unavailable-id') {
+      // Our stored ID is taken — generate fresh
+      localStorage.removeItem('livecam_my_sender_id');
+      senderPeerId = getSenderPeerId();
+    }
+    setDiag('dConn', 'ERR: ' + err.type, 'err');
+    document.getElementById('sbServer').className = 'sb-dot red';
+    // Retry in 6s
+    senderRetryTimer = setTimeout(() => { if (senderActive) connectSenderPeer(); }, 6000);
+  });
 }
 
-window.connectToCode = async (autoCode) => {
-  const code = autoCode || [0,1,2,3].map(i => document.getElementById('p'+i).value).join('');
-  if (code.length !== 4) return;
+function callReceiver(receiverId) {
+  if (!senderPeer || !localStream) return;
+  if (outgoingCalls.has(receiverId)) return; // already calling
 
-  currentCode = code;
-  saveSession('view', code);
-  document.getElementById('connectBtn').disabled = true;
-  document.getElementById('connectBtn').innerHTML = '<span class="spinner"></span> Connecting…';
-  viewStatus('Looking up room ' + code + '…', 'connecting');
-  vlog('Connecting to room ' + code + '…', 'i');
+  // Pass sender's peer ID as metadata so receiver can label this camera
+  const call = senderPeer.call(receiverId, localStream, {
+    metadata: { senderId: senderPeerId, label: 'CAM-' + shortId(senderPeerId) }
+  });
 
-  // Check if offer exists
-  const offerSnap = await get(ref(db, 'rooms/' + code + '/offer'));
-  if (!offerSnap.exists()) {
-    viewStatus('Code not found — check the number', 'err');
-    vlog('Room ' + code + ' not found', 'e');
-    document.getElementById('connectBtn').disabled = false;
-    document.getElementById('connectBtn').textContent = 'Connect';
+  if (!call) {
+    setDiag('dConn', 'CALL FAILED', 'err');
+    setTimeout(() => callReceiver(receiverId), 6000);
     return;
   }
 
-  vlog('Offer found — building connection…', 'ok');
+  outgoingCalls.set(receiverId, call);
 
-  // Show video panel
-  document.getElementById('pinPanel').style.display = 'none';
-  document.getElementById('viewVidPanel').style.display = 'block';
-
-  await createViewerPC(code, offerSnap.val());
-};
-
-async function createViewerPC(code, offerData) {
-  pc = new RTCPeerConnection(ICE);
-
-  pc.ontrack = e => {
-    vlog('Track received: ' + e.track.kind, 'ok');
-    const vid = document.getElementById('remoteVid');
-    const stream = e.streams[0] || new MediaStream([e.track]);
-    vid.srcObject = stream;
-
-    // Smooth playback settings
-    vid.playsInline = true;
-    vid.muted = false;
-
-    vid.onloadedmetadata = () => {
-      vlog('Video metadata loaded', 'ok');
-      vid.play().then(() => {
-        document.getElementById('remotePh').style.display = 'none';
-        document.getElementById('viewLive').style.display = 'block';
-        document.getElementById('vs-str').textContent = 'LIVE';
-        document.getElementById('vs-str').className = 'stat-v ok';
-        viewStatus('🟢 Live — streaming!', 'on');
-        vlog('Video playing ✓', 'ok');
-        startViewerStats();
-      }).catch(err => vlog('Play error: ' + err, 'e'));
-    };
-
-    // Handle stalled video
-    vid.onstalled = () => {
-      vlog('Video stalled — resuming…', 'w');
-      vid.play().catch(() => {});
-    };
-    vid.onwaiting = () => {
-      vlog('Buffering…', 'w');
-    };
-  };
-
-  // Watch for ICE from camera
-  onValue(ref(db, 'rooms/' + code + '/iceCam'), async snap => {
-    if (!snap.exists()) return;
-    const candidates = snap.val();
-    for (const k in candidates) {
-      try {
-        const c = candidates[k];
-        if (c && c.candidate) await pc.addIceCandidate(new RTCIceCandidate(c));
-      } catch {}
-    }
+  call.on('stream', () => {
+    // Receiver answered — we don't display their stream, just confirm connected
+    setDiag('dConn', 'STREAMING ✓', 'ok');
+    document.getElementById('senderStatusLabel').textContent = 'LIVE';
+    document.getElementById('sbStream').className = 'sb-dot green';
+    toast('Receiver connected — streaming live ✓');
   });
 
-  pc.oniceconnectionstatechange = () => {
-    vlog('ICE: ' + pc.iceConnectionState);
-    if (pc.iceConnectionState === 'failed') {
-      viewStatus('Connection lost — retrying…', 'err');
-      pc.restartIce();
-    } else if (pc.iceConnectionState === 'disconnected') {
-      viewStatus('Camera disconnected…', 'connecting');
-      document.getElementById('viewLive').style.display = 'none';
-    } else if (pc.iceConnectionState === 'connected' || pc.iceConnectionState === 'completed') {
-      viewStatus('🟢 Live — streaming!', 'on');
-    }
-  };
-
-  // Send ICE to Firebase
-  let iceCandidates = {};
-  let iceIdx = 0;
-  pc.onicecandidate = e => {
-    if (e.candidate) {
-      iceCandidates['c' + iceIdx++] = e.candidate.toJSON();
-      set(ref(db, 'rooms/' + code + '/iceView'), iceCandidates);
-    }
-  };
-
-  // Set remote offer
-  await pc.setRemoteDescription(new RTCSessionDescription(offerData));
-  const answer = await pc.createAnswer();
-  answer.sdp = patchSDP(answer.sdp, 2500000);
-  await pc.setLocalDescription(answer);
-
-  // Push answer
-  await set(ref(db, 'rooms/' + code + '/answer'), { type: answer.type, sdp: answer.sdp });
-  vlog('Answer sent ✓', 'ok');
-}
-
-// ══════════════════════════════════════════════════════════════════════════════
-//  SDP PATCH — removes bitrate caps, sets high priority
-// ══════════════════════════════════════════════════════════════════════════════
-function patchSDP(sdp, maxBitrate) {
-  const kbps = Math.floor(maxBitrate / 1000);
-  // Add bandwidth line after each m=video line
-  sdp = sdp.replace(/m=video.*\r\n/g, match => {
-    return match + 'b=AS:' + kbps + '\r\n';
+  call.on('close', () => {
+    outgoingCalls.delete(receiverId);
+    setDiag('dConn', 'RECEIVER CLOSED', 'warn');
+    document.getElementById('sbStream').className = 'sb-dot yellow';
+    // Re-attempt after receiver may restart
+    setTimeout(() => { if (senderActive) callReceiver(receiverId); }, 6000);
   });
-  return sdp;
+
+  call.on('error', (err) => {
+    outgoingCalls.delete(receiverId);
+    setDiag('dConn', 'STREAM ERR', 'err');
+    setTimeout(() => { if (senderActive) callReceiver(receiverId); }, 6000);
+  });
 }
 
-// ══════════════════════════════════════════════════════════════════════════════
-//  STATS
-// ══════════════════════════════════════════════════════════════════════════════
-function startCamStats() {
-  if (statsInterval) clearInterval(statsInterval);
-  prevB = 0; prevTs = Date.now();
-  statsInterval = setInterval(async () => {
-    if (!pc) return;
-    try {
-      const stats = await pc.getStats();
-      const now = Date.now();
-      stats.forEach(s => {
-        if (s.type === 'outbound-rtp' && s.kind === 'video') {
-          const b = s.bytesSent || 0;
-          const kbps = Math.round((b - prevB) * 8 / ((now - prevTs) / 1000) / 1000);
-          prevB = b; prevTs = now;
-          const el = document.getElementById('s-bit');
-          el.textContent = kbps > 0 ? kbps + ' kbps' : '—';
-          el.className = 'stat-v ' + (kbps > 200 ? 'ok' : 'warn');
-        }
-      });
-    } catch {}
-  }, 2000);
+function stopSender() {
+  senderActive = false;
+  if (localStream) { localStream.getTracks().forEach(t => t.stop()); localStream = null; }
+  outgoingCalls.forEach(call => { try { call.close(); } catch(e){} });
+  outgoingCalls.clear();
+  if (senderPeer) { try { senderPeer.destroy(); } catch(e){} senderPeer = null; }
+  if (senderUptimeInterval) clearInterval(senderUptimeInterval);
+  if (senderRetryTimer) clearTimeout(senderRetryTimer);
+
+  document.getElementById('localVideo').srcObject = null;
+  document.getElementById('btnStartSender').style.display = 'block';
+  document.getElementById('btnStartSender').disabled = false;
+  document.getElementById('btnStopSender').style.display = 'none';
+  document.getElementById('senderBlink').style.display = 'none';
+  document.getElementById('senderStatusLabel').textContent = 'READY';
+  setDiag('dPermission', '—'); setDiag('dServer', '—'); setDiag('dConn', '—');
+  document.getElementById('sbCam').className = 'sb-dot';
+  document.getElementById('sbStream').className = 'sb-dot';
+  document.getElementById('sbServer').className = 'sb-dot red';
+  toast('Camera stopped');
 }
 
-function startViewerStats() {
-  if (statsInterval) clearInterval(statsInterval);
-  prevB = 0; prevTs = Date.now();
-  statsInterval = setInterval(async () => {
-    if (!pc) return;
-    try {
-      const stats = await pc.getStats();
-      const now = Date.now();
-      const vid = document.getElementById('remoteVid');
-      if (vid.videoWidth) {
-        document.getElementById('vs-res').textContent = vid.videoWidth + '×' + vid.videoHeight;
+async function switchCamera(facing) {
+  senderFacing = facing;
+  document.getElementById('btnBack').classList.toggle('active', facing === 'environment');
+  document.getElementById('btnFront').classList.toggle('active', facing === 'user');
+  if (!localStream) return;
+
+  localStream.getVideoTracks().forEach(t => t.stop());
+
+  try {
+    const newStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: facing, width: { ideal: 1280 }, height: { ideal: 720 }, frameRate: { ideal: 30 } },
+      audio: false
+    });
+    const newTrack = newStream.getVideoTracks()[0];
+
+    // Replace track in all active outgoing calls
+    outgoingCalls.forEach(call => {
+      if (call.peerConnection) {
+        call.peerConnection.getSenders().forEach(sender => {
+          if (sender.track && sender.track.kind === 'video') sender.replaceTrack(newTrack);
+        });
       }
-      stats.forEach(s => {
-        if (s.type === 'inbound-rtp' && s.kind === 'video') {
-          const b = s.bytesReceived || 0;
-          const kbps = Math.round((b - prevB) * 8 / ((now - prevTs) / 1000) / 1000);
-          prevB = b; prevTs = now;
-          const el = document.getElementById('vs-bit');
-          el.textContent = kbps > 0 ? kbps + ' kbps' : '—';
-          el.className = 'stat-v ' + (kbps > 100 ? 'ok' : 'warn');
-        }
-        if (s.type === 'candidate-pair' && (s.state === 'succeeded' || s.nominated)) {
-          const rtt = s.currentRoundTripTime;
-          if (rtt !== undefined) {
-            const ms = Math.round(rtt * 1000);
-            const el = document.getElementById('vs-lat');
-            el.textContent = ms + ' ms';
-            el.className = 'stat-v ' + (ms < 100 ? 'ok' : ms < 300 ? 'warn' : 'err');
-          }
-        }
-      });
-    } catch {}
-  }, 2000);
+    });
+
+    localStream = newStream;
+    document.getElementById('localVideo').srcObject = newStream;
+    const s = newTrack.getSettings();
+    setDiag('dFacing', facing === 'user' ? 'FRONT' : 'BACK');
+    setDiag('dResolution', `${s.width||'?'}×${s.height||'?'}`);
+    toast('Camera switched ✓');
+  } catch(e) { toast('Switch failed: ' + e.message, true); }
 }
 
-// ══════════════════════════════════════════════════════════════════════════════
-//  DISCONNECT / CLEANUP
-// ══════════════════════════════════════════════════════════════════════════════
-window.disconnect = async () => {
-  if (currentCode) {
-    try {
-      await remove(ref(db, 'rooms/' + currentCode));
-      vlog('Room cleared', 'ok');
-    } catch {}
-  }
-  localStorage.removeItem('livecam_session');
-  cleanup();
-  goHome();
-};
-
-function cleanup() {
-  if (statsInterval) { clearInterval(statsInterval); statsInterval = null; }
-  if (pc) { pc.close(); pc = null; }
-  if (localStream) {
-    localStream.getTracks().forEach(t => t.stop());
-    localStream = null;
-  }
-  currentCode = null;
+function updateUptime() {
+  if (!senderStartTime) return;
+  const e = Math.floor((Date.now() - senderStartTime) / 1000);
+  const h = String(Math.floor(e/3600)).padStart(2,'0');
+  const m = String(Math.floor((e%3600)/60)).padStart(2,'0');
+  const s = String(e%60).padStart(2,'0');
+  document.getElementById('dUptime').textContent = `${h}:${m}:${s}`;
 }
 
+// ═══════════════════════════════════════════════════════════════════════════════
+// RECEIVER  
+// KEY CHANGE: Receiver sits on the fixed RECEIVER_PEER_ID and answers every
+// incoming call. Each call = one sender's camera. Display each in its own tile.
+// ═══════════════════════════════════════════════════════════════════════════════
+let receiverPeer = null;
+const activeCameras = new Map(); // senderId → { call, facing }
+let receiverRetryTimer = null;
+let camCounter = 0;
+
+function initReceiver() {
+  if (receiverRetryTimer) clearTimeout(receiverRetryTimer);
+  if (receiverPeer) { try { receiverPeer.destroy(); } catch(e){} receiverPeer = null; }
+
+  document.getElementById('sbServer').className = 'sb-dot yellow';
+
+  receiverPeer = new Peer(RECEIVER_PEER_ID, makePeerOptions());
+
+  receiverPeer.on('open', (id) => {
+    document.getElementById('sbServer').className = 'sb-dot green';
+    toast('Receiver ready — waiting for cameras...');
+  });
+
+  // ── This is where the magic happens ──────────────────────────────────────
+  // Every time a sender calls us, we answer with a blank stream.
+  // The sender's camera stream comes back as remoteStream → display it.
+  receiverPeer.on('call', (call) => {
+    const meta = call.metadata || {};
+    const senderId = meta.senderId || call.peer;
+    const label = meta.label || ('CAM-' + (++camCounter).toString().padStart(2,'0'));
+
+    // Answer with a blank audio track (required by WebRTC to complete handshake)
+    const silentStream = createSilentStream();
+    call.answer(silentStream);
+
+    // Create or reuse a camera card
+    if (!activeCameras.has(senderId)) {
+      createCameraCard(senderId, label);
+      activeCameras.set(senderId, { call, facing: 'environment' });
+    } else {
+      activeCameras.get(senderId).call = call;
+      setCardStatus(senderId, 'connecting');
+    }
+
+    // ── stream event: fires with sender's LIVE camera track ──────────────
+    call.on('stream', (remoteStream) => {
+      const cid = cleanId(senderId);
+      const vid = document.getElementById('vid-' + cid);
+      if (!vid) return;
+
+      // Attach the stream directly
+      vid.srcObject = remoteStream;
+
+      // Force play — critical on mobile
+      vid.onloadedmetadata = () => {
+        vid.play().catch(e => console.warn('play err:', e));
+      };
+      // Fallback in case onloadedmetadata already fired
+      if (vid.readyState >= 1) vid.play().catch(() => {});
+
+      setCardStatus(senderId, 'live');
+      updateCameraCount();
+      toast('📷 ' + label + ' connected!');
+    });
+
+    call.on('close', () => {
+      setCardStatus(senderId, 'offline');
+      updateCameraCount();
+      toast(label + ' disconnected', true);
+    });
+
+    call.on('error', (err) => {
+      setCardStatus(senderId, 'offline');
+      console.warn('call error from', senderId, err);
+    });
+  });
+
+  // Handle data connections from senders (flip commands come back this way)
+  receiverPeer.on('connection', (conn) => {
+    // Receiver doesn't need to do anything here; flip commands go sender→receiver
+  });
+
+  receiverPeer.on('error', (err) => {
+    console.warn('Receiver peer error:', err.type);
+    document.getElementById('sbServer').className = 'sb-dot red';
+
+    if (err.type === 'unavailable-id') {
+      // Another receiver instance is already running with this ID
+      // This is fine — senders will connect to that one. Show a warning.
+      toast('⚠ Another receiver is active on this ID. Only one receiver window can be open at a time.', true);
+      return; // don't retry — would just loop
+    }
+
+    receiverRetryTimer = setTimeout(initReceiver, 6000);
+  });
+
+  receiverPeer.on('disconnected', () => {
+    document.getElementById('sbServer').className = 'sb-dot yellow';
+    receiverRetryTimer = setTimeout(() => {
+      if (receiverPeer && !receiverPeer.destroyed) receiverPeer.reconnect();
+      else initReceiver();
+    }, 4000);
+  });
+}
+
+function createSilentStream() {
+  // Create a minimal valid stream to complete WebRTC answer handshake
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const dest = ctx.createMediaStreamDestination();
+    return dest.stream;
+  } catch(e) {
+    // Fallback: blank canvas video stream
+    const canvas = document.createElement('canvas');
+    canvas.width = 2; canvas.height = 2;
+    return canvas.captureStream(1);
+  }
+}
+
+function createCameraCard(senderId, label) {
+  const cid = cleanId(senderId);
+  if (document.getElementById('card-' + cid)) return; // already exists
+
+  const card = document.createElement('div');
+  card.className = 'cam-card';
+  card.id = 'card-' + cid;
+  card.innerHTML = `
+    <video id="vid-${cid}" autoplay playsinline muted
+      style="width:100%;aspect-ratio:16/9;display:block;object-fit:cover;background:#000"></video>
+    <div class="cam-card-hud">
+      <div class="cam-card-top">
+        <div class="cam-card-name">${label}</div>
+        <div class="cam-card-status connecting" id="status-${cid}">CONNECTING</div>
+      </div>
+      <div class="cam-card-bottom">
+        <div class="cam-mini-diag" id="diag-${cid}">${shortId(senderId)}</div>
+        <button class="cam-flip-btn" onclick="requestCameraFlip('${senderId}')">⟳ FLIP CAM</button>
+      </div>
+    </div>`;
+
+  const grid = document.getElementById('cameraGrid');
+  const ph = grid.querySelector('.no-cameras');
+  if (ph) ph.remove();
+  grid.appendChild(card);
+}
+
+function setCardStatus(senderId, status) {
+  const el = document.getElementById('status-' + cleanId(senderId));
+  if (!el) return;
+  el.className = 'cam-card-status ' + status;
+  el.textContent = status.toUpperCase();
+}
+
+function updateCameraCount() {
+  const n = activeCameras.size;
+  document.getElementById('activeCount').textContent = n;
+  document.getElementById('hdrCams').textContent = n + ' CAM';
+  const live = [...activeCameras.values()].some(c => c.call);
+  document.getElementById('sbStream').className = live ? 'sb-dot green' : 'sb-dot';
+}
+
+function requestCameraFlip(senderId) {
+  if (!receiverPeer || !receiverPeer.open) return;
+  const cam = activeCameras.get(senderId);
+  const newFacing = cam && cam.facing === 'environment' ? 'user' : 'environment';
+  if (cam) cam.facing = newFacing;
+
+  const conn = receiverPeer.connect(senderId);
+  conn.on('open', () => {
+    conn.send({ type: 'flipCamera', facing: newFacing });
+    setTimeout(() => conn.close(), 3000);
+  });
+  conn.on('error', () => toast('Flip command failed', true));
+  toast('Camera flip →');
+}
+
+function refreshReceiverConnections() {
+  toast('Waiting for senders to reconnect...');
+  // Receiver is passive — just ensure peer is open
+  if (!receiverPeer || !receiverPeer.open) initReceiver();
+}
+
+// ─── SHARED UTILS ─────────────────────────────────────────────────────────────
+function cleanId(id) { return id.replace(/[^a-zA-Z0-9]/g, '_'); }
+function shortId(id) { return (id.split('-').pop() || id).toUpperCase().substr(0, 8); }
+function setDiag(id, val, cls) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.textContent = val;
+  el.className = 'diag-val' + (cls ? ' ' + cls : '');
+}
+
+// ─── NETWORK INFO ─────────────────────────────────────────────────────────────
+async function fetchNetInfo() {
+  try {
+    const r = await fetch('https://api.ipify.org?format=json');
+    const d = await r.json();
+    document.getElementById('sbIp').textContent = 'IP: ' + d.ip;
+  } catch(e) { document.getElementById('sbIp').textContent = 'IP: —'; }
+}
+
+// ─── INIT ─────────────────────────────────────────────────────────────────────
+window.addEventListener('load', () => {
+  checkPinOnLoad();
+  loadServerConfig();
+  initReceiver();
+  fetchNetInfo();
+
+  if (navigator.connection) {
+    const nc = navigator.connection;
+    document.getElementById('sbNet').textContent = 'NET: ' + (nc.effectiveType || '?');
+    nc.addEventListener('change', () => {
+      document.getElementById('sbNet').textContent = 'NET: ' + (nc.effectiveType || '?');
+    });
+  }
+});
+
+// Auto-reconnect on tab focus regain
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) return;
+  if (senderActive && senderPeer) {
+    if (!senderPeer.open && !senderPeer.destroyed) senderPeer.reconnect();
+    else if (senderPeer.destroyed) connectSenderPeer();
+  }
+  if (receiverPeer) {
+    if (!receiverPeer.open && !receiverPeer.destroyed) receiverPeer.reconnect();
+    else if (receiverPeer.destroyed) initReceiver();
+  }
+});
 </script>
-
-
 </body>
 </html>

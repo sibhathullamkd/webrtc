@@ -2,977 +2,928 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
-<title>LiveCam — Instant Camera Share</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+<title>LiveCam</title>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Space+Grotesk:wght@300;400;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600;700&family=Syne:wght@400;700;800&display=swap');
 
-  :root {
-    --bg: #0a0c0f;
-    --surface: #111318;
-    --border: #1e2330;
-    --accent: #00e5ff;
-    --accent2: #ff3b6b;
-    --green: #00ff88;
-    --yellow: #ffd700;
-    --text: #e8eaf0;
-    --muted: #5a6070;
-    --card: #13171f;
-  }
+:root {
+  --bg: #080b10;
+  --s1: #0d1118;
+  --s2: #111720;
+  --border: #1c2333;
+  --accent: #3dff9a;
+  --accent2: #ff4757;
+  --blue: #4da6ff;
+  --yellow: #ffd32a;
+  --text: #dde3ef;
+  --muted: #4a566b;
+  --card: #0f141c;
+  --r: 14px;
+}
 
-  * { box-sizing: border-box; margin: 0; padding: 0; }
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
 
-  body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: 'Space Grotesk', sans-serif;
-    min-height: 100vh;
-    overflow-x: hidden;
-  }
+html, body {
+  height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Syne', sans-serif;
+  overscroll-behavior: none;
+}
 
-  /* Grid background */
-  body::before {
-    content: '';
-    position: fixed;
-    inset: 0;
-    background-image:
-      linear-gradient(rgba(0,229,255,0.03) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(0,229,255,0.03) 1px, transparent 1px);
-    background-size: 40px 40px;
-    pointer-events: none;
-    z-index: 0;
-  }
+body::after {
+  content: '';
+  position: fixed; inset: 0; pointer-events: none; z-index: 0;
+  background:
+    radial-gradient(ellipse 60% 40% at 20% 0%, rgba(61,255,154,0.04) 0%, transparent 70%),
+    radial-gradient(ellipse 50% 30% at 80% 100%, rgba(77,166,255,0.04) 0%, transparent 70%);
+}
 
-  .wrapper {
-    position: relative;
-    z-index: 1;
-    max-width: 520px;
-    margin: 0 auto;
-    padding: 16px;
-  }
+.app { position: relative; z-index: 1; max-width: 480px; margin: 0 auto; padding: 0 14px 30px; min-height: 100vh; }
 
-  /* Header */
-  .header {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 20px 0 24px;
-    border-bottom: 1px solid var(--border);
-    margin-bottom: 24px;
-  }
+/* ── SCREENS ── */
+.screen { display: none; }
+.screen.active { display: block; }
 
-  .logo-icon {
-    width: 42px;
-    height: 42px;
-    background: linear-gradient(135deg, var(--accent), #0060ff);
-    border-radius: 12px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 20px;
-    flex-shrink: 0;
-    box-shadow: 0 0 20px rgba(0,229,255,0.3);
-  }
+/* ── HEADER ── */
+.hdr {
+  display: flex; align-items: center; gap: 10px;
+  padding: 18px 0 20px;
+}
+.hdr-icon {
+  width: 38px; height: 38px; border-radius: 10px;
+  background: linear-gradient(135deg,#3dff9a22,#4da6ff22);
+  border: 1px solid #3dff9a33;
+  display: flex; align-items: center; justify-content: center; font-size: 18px;
+}
+.hdr h1 { font-size: 22px; font-weight: 800; letter-spacing: -0.5px; }
+.hdr span { color: var(--accent); }
+.hdr-sub { font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: var(--muted); margin-top: 1px; }
 
-  .header-text h1 {
-    font-size: 20px;
-    font-weight: 700;
-    letter-spacing: -0.3px;
-    color: var(--text);
-  }
+/* ── ROLE CARDS ── */
+.role-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
+.role-card {
+  border: 1.5px solid var(--border);
+  background: var(--card);
+  border-radius: var(--r);
+  padding: 18px 12px;
+  text-align: center;
+  cursor: pointer;
+  transition: all .2s;
+  -webkit-user-select: none;
+}
+.role-card:active { transform: scale(.97); }
+.role-card.cam:hover, .role-card.cam:focus { border-color: var(--accent2); box-shadow: 0 0 24px rgba(255,71,87,.15); }
+.role-card.view:hover, .role-card.view:focus { border-color: var(--blue); box-shadow: 0 0 24px rgba(77,166,255,.15); }
+.role-card .rc-icon { font-size: 28px; display: block; margin-bottom: 8px; }
+.role-card .rc-title { font-size: 15px; font-weight: 700; }
+.role-card .rc-sub { font-size: 11px; color: var(--muted); margin-top: 3px; font-family: 'IBM Plex Mono', monospace; }
 
-  .header-text p {
-    font-size: 12px;
-    color: var(--muted);
-    font-family: 'JetBrains Mono', monospace;
-    margin-top: 2px;
-  }
+/* ── PANELS ── */
+.panel {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  padding: 18px;
+  margin-bottom: 14px;
+}
+.panel-label {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase;
+  color: var(--muted); margin-bottom: 12px;
+}
 
-  /* Role selector */
-  .role-selector {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 10px;
-    margin-bottom: 20px;
-  }
+/* ── VIDEO ── */
+.vid-wrap {
+  position: relative; width: 100%;
+  aspect-ratio: 16/9;
+  background: #050709; border-radius: 10px; overflow: hidden;
+  border: 1px solid var(--border);
+}
+video {
+  width: 100%; height: 100%; object-fit: cover; display: block;
+  background: #000;
+}
+.vid-ph {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 8px; color: var(--muted); font-family: 'IBM Plex Mono', monospace; font-size: 12px;
+}
+.vid-ph .ph-ico { font-size: 28px; opacity: .4; }
+.live-pill {
+  position: absolute; top: 10px; left: 10px;
+  background: var(--accent2); color: #fff;
+  font-size: 10px; font-weight: 700; font-family: 'IBM Plex Mono', monospace;
+  padding: 3px 9px; border-radius: 20px; letter-spacing: 1px;
+  display: none;
+  animation: blink 2s infinite;
+}
+@keyframes blink { 0%,100%{opacity:1}50%{opacity:.5} }
 
-  .role-btn {
-    padding: 14px 12px;
-    border-radius: 14px;
-    border: 2px solid var(--border);
-    background: var(--card);
-    color: var(--muted);
-    cursor: pointer;
-    font-family: 'Space Grotesk', sans-serif;
-    font-size: 14px;
-    font-weight: 600;
-    transition: all 0.2s;
-    text-align: center;
-    position: relative;
-    overflow: hidden;
-  }
+/* ── 4-DIGIT CODE ── */
+.code-display {
+  display: flex; align-items: center; justify-content: center;
+  gap: 10px; margin: 18px 0;
+}
+.digit-box {
+  width: 62px; height: 72px;
+  background: var(--s2);
+  border: 2px solid var(--border);
+  border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 32px; font-weight: 700;
+  color: var(--accent);
+  letter-spacing: 0;
+  transition: all .3s;
+  position: relative; overflow: hidden;
+}
+.digit-box.filled {
+  border-color: var(--accent);
+  box-shadow: 0 0 18px rgba(61,255,154,.2);
+}
+.digit-box::after {
+  content: '';
+  position: absolute; bottom: 0; left: 0; right: 0; height: 2px;
+  background: var(--accent); opacity: .3;
+}
 
-  .role-btn::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    opacity: 0;
-    transition: opacity 0.2s;
-  }
+.code-hint {
+  text-align: center; font-size: 12px; color: var(--muted);
+  font-family: 'IBM Plex Mono', monospace; margin-bottom: 6px;
+}
 
-  .role-btn.sender::before { background: linear-gradient(135deg, rgba(255,59,107,0.1), transparent); }
-  .role-btn.receiver::before { background: linear-gradient(135deg, rgba(0,229,255,0.1), transparent); }
+/* Code entry (receiver) */
+.pin-row {
+  display: flex; gap: 10px; justify-content: center; margin: 18px 0 14px;
+}
+.pin-digit {
+  width: 62px; height: 72px;
+  background: var(--s2);
+  border: 2px solid var(--border);
+  border-radius: 12px;
+  text-align: center;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 32px; font-weight: 700;
+  color: var(--text);
+  outline: none;
+  -webkit-appearance: none;
+  caret-color: var(--accent);
+  transition: border-color .2s;
+  padding: 0;
+}
+.pin-digit:focus { border-color: var(--blue); }
+.pin-digit.filled-r { border-color: var(--blue); color: var(--blue); }
 
-  .role-btn:hover::before, .role-btn.active::before { opacity: 1; }
+/* ── BUTTONS ── */
+.btn {
+  width: 100%; padding: 14px;
+  border: none; border-radius: 10px;
+  font-family: 'Syne', sans-serif;
+  font-size: 15px; font-weight: 700;
+  cursor: pointer; display: flex;
+  align-items: center; justify-content: center; gap: 8px;
+  transition: all .2s;
+  -webkit-user-select: none;
+}
+.btn:active { transform: scale(.97); }
+.btn-green {
+  background: linear-gradient(135deg, #3dff9a, #00cc6a);
+  color: #000;
+  box-shadow: 0 4px 20px rgba(61,255,154,.25);
+}
+.btn-green:disabled { opacity: .4; }
+.btn-blue {
+  background: linear-gradient(135deg, #4da6ff, #0066cc);
+  color: #fff;
+  box-shadow: 0 4px 20px rgba(77,166,255,.25);
+}
+.btn-red {
+  background: linear-gradient(135deg, #ff4757, #cc0022);
+  color: #fff;
+  box-shadow: 0 4px 20px rgba(255,71,87,.2);
+}
+.btn-ghost {
+  background: var(--s2); border: 1px solid var(--border);
+  color: var(--muted); font-size: 13px;
+}
+.btn + .btn { margin-top: 8px; }
 
-  .role-btn.sender.active {
-    border-color: var(--accent2);
-    color: var(--accent2);
-    box-shadow: 0 0 20px rgba(255,59,107,0.2);
-  }
+/* ── STATUS BAR ── */
+.status-bar {
+  display: flex; align-items: center; gap: 9px;
+  padding: 10px 14px;
+  background: var(--s2); border: 1px solid var(--border);
+  border-radius: 10px; margin-bottom: 14px;
+  font-family: 'IBM Plex Mono', monospace; font-size: 12px;
+}
+.sdot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--muted); flex-shrink: 0; transition: background .3s;
+}
+.sdot.on { background: var(--accent); animation: pulse 1.5s infinite; }
+.sdot.connecting { background: var(--yellow); animation: pulse 1s infinite; }
+.sdot.err { background: var(--accent2); }
+@keyframes pulse { 0%,100%{opacity:1}50%{opacity:.3} }
+.stext { color: var(--muted); }
+.stext.on { color: var(--accent); }
+.stext.connecting { color: var(--yellow); }
+.stext.err { color: var(--accent2); }
 
-  .role-btn.receiver.active {
-    border-color: var(--accent);
-    color: var(--accent);
-    box-shadow: 0 0 20px rgba(0,229,255,0.2);
-  }
+/* ── STATS ── */
+.stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 14px; }
+.stat { background: var(--s2); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; }
+.stat-l { font-size: 10px; color: var(--muted); font-family: 'IBM Plex Mono', monospace; margin-bottom: 4px; }
+.stat-v { font-size: 13px; font-weight: 700; font-family: 'IBM Plex Mono', monospace; }
+.stat-v.ok { color: var(--accent); }
+.stat-v.warn { color: var(--yellow); }
+.stat-v.err { color: var(--accent2); }
 
-  .role-btn .role-icon { font-size: 22px; display: block; margin-bottom: 6px; }
-  .role-btn .role-label { display: block; }
-  .role-btn .role-sub { display: block; font-size: 10px; font-weight: 400; opacity: 0.7; margin-top: 2px; font-family: 'JetBrains Mono', monospace; }
+/* ── LOG ── */
+.log {
+  background: var(--s2); border: 1px solid var(--border);
+  border-radius: 10px; padding: 10px 12px;
+  font-family: 'IBM Plex Mono', monospace; font-size: 11px;
+  line-height: 1.7; max-height: 120px; overflow-y: auto;
+  scrollbar-width: none;
+}
+.log::-webkit-scrollbar { display: none; }
+.ll { color: var(--muted); }
+.ll.i { color: var(--blue); }
+.ll.ok { color: var(--accent); }
+.ll.e { color: var(--accent2); }
+.ll.w { color: var(--yellow); }
 
-  /* Panel */
-  .panel {
-    background: var(--card);
-    border: 1px solid var(--border);
-    border-radius: 18px;
-    padding: 20px;
-    margin-bottom: 16px;
-  }
+/* ── SPINNER ── */
+.spinner {
+  width: 20px; height: 20px; border: 2px solid transparent;
+  border-top-color: currentColor; border-radius: 50%;
+  animation: spin .7s linear infinite; flex-shrink: 0;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
 
-  .panel-title {
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 1.5px;
-    text-transform: uppercase;
-    color: var(--muted);
-    margin-bottom: 14px;
-    font-family: 'JetBrains Mono', monospace;
-  }
+/* ── QUALITY ── */
+.q-row { display: grid; grid-template-columns: repeat(3,1fr); gap: 6px; margin-bottom: 14px; }
+.qb {
+  padding: 8px 4px; text-align: center;
+  background: var(--s2); border: 1.5px solid var(--border);
+  border-radius: 8px; color: var(--muted);
+  font-size: 11px; font-weight: 700; cursor: pointer;
+  font-family: 'IBM Plex Mono', monospace; transition: all .15s;
+}
+.qb.active { border-color: var(--accent); color: var(--accent); background: rgba(61,255,154,.05); }
+.qb:active { transform: scale(.95); }
+.qb .qs { display: block; font-size: 9px; font-weight: 400; opacity: .6; margin-top: 2px; }
 
-  /* Video */
-  .video-wrap {
-    position: relative;
-    width: 100%;
-    aspect-ratio: 16/9;
-    background: #07090d;
-    border-radius: 12px;
-    overflow: hidden;
-    border: 1px solid var(--border);
-  }
-
-  video {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    display: block;
-  }
-
-  .video-placeholder {
-    position: absolute;
-    inset: 0;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 10px;
-    color: var(--muted);
-    font-size: 13px;
-    font-family: 'JetBrains Mono', monospace;
-  }
-
-  .video-placeholder .ph-icon { font-size: 32px; opacity: 0.4; }
-
-  .live-badge {
-    position: absolute;
-    top: 10px;
-    left: 10px;
-    background: var(--accent2);
-    color: white;
-    font-size: 10px;
-    font-weight: 700;
-    padding: 3px 8px;
-    border-radius: 6px;
-    letter-spacing: 1px;
-    font-family: 'JetBrains Mono', monospace;
-    display: none;
-    animation: pulseBadge 1.5s infinite;
-  }
-
-  @keyframes pulseBadge {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.6; }
-  }
-
-  /* Stats grid */
-  .stats-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 8px;
-    margin-top: 14px;
-  }
-
-  .stat-item {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 10px 12px;
-  }
-
-  .stat-label {
-    font-size: 10px;
-    color: var(--muted);
-    font-family: 'JetBrains Mono', monospace;
-    letter-spacing: 0.5px;
-    margin-bottom: 4px;
-  }
-
-  .stat-value {
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--text);
-    font-family: 'JetBrains Mono', monospace;
-    word-break: break-all;
-  }
-
-  .stat-value.ok { color: var(--green); }
-  .stat-value.warn { color: var(--yellow); }
-  .stat-value.err { color: var(--accent2); }
-
-  /* Input */
-  .input-row {
-    display: flex;
-    gap: 8px;
-    align-items: stretch;
-  }
-
-  input[type="text"] {
-    flex: 1;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 12px 14px;
-    color: var(--text);
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 13px;
-    outline: none;
-    transition: border-color 0.2s;
-  }
-
-  input[type="text"]:focus { border-color: var(--accent); }
-  input[type="text"]::placeholder { color: var(--muted); }
-
-  /* Buttons */
-  .btn {
-    padding: 12px 20px;
-    border-radius: 10px;
-    border: none;
-    font-family: 'Space Grotesk', sans-serif;
-    font-weight: 700;
-    font-size: 13px;
-    cursor: pointer;
-    transition: all 0.2s;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    white-space: nowrap;
-  }
-
-  .btn-primary {
-    background: linear-gradient(135deg, var(--accent), #0088cc);
-    color: #000;
-    box-shadow: 0 4px 15px rgba(0,229,255,0.3);
-  }
-
-  .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(0,229,255,0.4); }
-  .btn-primary:active { transform: translateY(0); }
-
-  .btn-danger {
-    background: linear-gradient(135deg, var(--accent2), #cc0033);
-    color: white;
-    box-shadow: 0 4px 15px rgba(255,59,107,0.3);
-  }
-
-  .btn-full { width: 100%; justify-content: center; }
-
-  .btn-outline {
-    background: transparent;
-    border: 1px solid var(--border);
-    color: var(--muted);
-  }
-
-  .btn-outline:hover { border-color: var(--accent); color: var(--accent); }
-
-  .btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none !important; }
-
-  /* Code share box */
-  .code-box {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 14px;
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 11px;
-    word-break: break-all;
-    color: var(--accent);
-    line-height: 1.6;
-    position: relative;
-    max-height: 100px;
-    overflow-y: auto;
-    scrollbar-width: thin;
-  }
-
-  .copy-btn {
-    position: absolute;
-    top: 8px;
-    right: 8px;
-    background: var(--border);
-    border: none;
-    border-radius: 6px;
-    color: var(--muted);
-    font-size: 10px;
-    padding: 4px 8px;
-    cursor: pointer;
-    font-family: 'JetBrains Mono', monospace;
-    transition: all 0.15s;
-  }
-
-  .copy-btn:hover { background: var(--accent); color: #000; }
-
-  /* Log */
-  .log-box {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 12px;
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 11px;
-    line-height: 1.7;
-    max-height: 150px;
-    overflow-y: auto;
-    scrollbar-width: thin;
-  }
-
-  .log-line { color: var(--muted); }
-  .log-line.info { color: var(--accent); }
-  .log-line.ok { color: var(--green); }
-  .log-line.err { color: var(--accent2); }
-  .log-line.warn { color: var(--yellow); }
-
-  /* Steps */
-  .steps {
-    counter-reset: step;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-  }
-
-  .step {
-    display: flex;
-    gap: 12px;
-    align-items: flex-start;
-    counter-increment: step;
-  }
-
-  .step-num {
-    width: 24px;
-    height: 24px;
-    border-radius: 50%;
-    background: var(--border);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 11px;
-    font-weight: 700;
-    color: var(--accent);
-    flex-shrink: 0;
-    font-family: 'JetBrains Mono', monospace;
-    margin-top: 1px;
-  }
-
-  .step-text { font-size: 13px; color: var(--muted); line-height: 1.5; }
-  .step-text strong { color: var(--text); }
-
-  /* Connection status bar */
-  .status-bar {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 10px 14px;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    margin-bottom: 14px;
-    font-size: 12px;
-    font-family: 'JetBrains Mono', monospace;
-  }
-
-  .status-dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background: var(--muted);
-    flex-shrink: 0;
-    transition: background 0.3s;
-  }
-
-  .status-dot.connecting { background: var(--yellow); animation: pulse 1s infinite; }
-  .status-dot.connected { background: var(--green); }
-  .status-dot.error { background: var(--accent2); }
-
-  @keyframes pulse { 0%,100%{opacity:1}50%{opacity:0.3} }
-
-  .status-text { color: var(--muted); }
-  .status-text.connected { color: var(--green); }
-  .status-text.connecting { color: var(--yellow); }
-  .status-text.error { color: var(--accent2); }
-
-  /* Quality selector */
-  .quality-row {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 6px;
-    margin-bottom: 14px;
-  }
-
-  .q-btn {
-    padding: 8px;
-    text-align: center;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    color: var(--muted);
-    font-size: 11px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.15s;
-    font-family: 'JetBrains Mono', monospace;
-  }
-
-  .q-btn:hover { border-color: var(--accent); color: var(--accent); }
-  .q-btn.active { border-color: var(--accent); color: var(--accent); background: rgba(0,229,255,0.07); }
-
-  /* Hidden */
-  .hidden { display: none !important; }
-
-  /* Section divider */
-  .divider {
-    height: 1px;
-    background: var(--border);
-    margin: 16px 0;
-  }
-
-  /* Scrollbar */
-  ::-webkit-scrollbar { width: 4px; height: 4px; }
-  ::-webkit-scrollbar-track { background: transparent; }
-  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+/* reconnect notice */
+.reconnect-notice {
+  background: rgba(61,255,154,.07); border: 1px solid rgba(61,255,154,.2);
+  border-radius: 10px; padding: 12px 14px;
+  font-family: 'IBM Plex Mono', monospace; font-size: 11px;
+  color: var(--accent); margin-bottom: 14px; line-height: 1.6;
+  display: none;
+}
 </style>
 </head>
 <body>
-<div class="wrapper">
+<div class="app">
 
-  <!-- Header -->
-  <div class="header">
-    <div class="logo-icon">📡</div>
-    <div class="header-text">
-      <h1>LiveCam</h1>
-      <p>peer-to-peer · low-latency · encrypted</p>
+<!-- ════════════════════════════════════════════
+     SCREEN: ROLE SELECT
+════════════════════════════════════════════ -->
+<div class="screen active" id="sc-role">
+  <div class="hdr">
+    <div class="hdr-icon">📡</div>
+    <div>
+      <div class="hdr h1"><span>Live</span>Cam</div>
+      <div class="hdr-sub">p2p · encrypted · persistent</div>
     </div>
   </div>
 
-  <!-- Role Selector -->
-  <div class="role-selector">
-    <button class="role-btn sender" onclick="setRole('sender')">
-      <span class="role-icon">📲</span>
-      <span class="role-label">PHONE A</span>
-      <span class="role-sub">Send Camera</span>
-    </button>
-    <button class="role-btn receiver" onclick="setRole('receiver')">
-      <span class="role-icon">🖥️</span>
-      <span class="role-label">PHONE B</span>
-      <span class="role-sub">View Stream</span>
-    </button>
+  <div class="reconnect-notice" id="reconnectNotice">
+    ↩ Previous session found — reconnecting automatically…
   </div>
 
-  <!-- Status Bar -->
-  <div class="status-bar">
-    <div class="status-dot" id="statusDot"></div>
-    <span class="status-text" id="statusText">Select a role to begin</span>
-  </div>
-
-  <!-- SENDER PANEL -->
-  <div id="senderPanel" class="hidden">
-
-    <div class="panel">
-      <div class="panel-title">Camera Preview</div>
-      <div class="video-wrap">
-        <video id="localVideo" autoplay muted playsinline></video>
-        <div class="video-placeholder" id="localPlaceholder">
-          <span class="ph-icon">📷</span>
-          <span>Camera inactive</span>
-        </div>
-        <div class="live-badge" id="liveBadge">● LIVE</div>
-      </div>
-
-      <!-- Quality -->
-      <div style="margin-top:14px;">
-        <div class="panel-title" style="margin-bottom:8px;">Stream Quality</div>
-        <div class="quality-row">
-          <div class="q-btn" onclick="setQuality('low')">360p<br><span style="font-size:9px;opacity:0.6">Low data</span></div>
-          <div class="q-btn active" onclick="setQuality('medium')">720p<br><span style="font-size:9px;opacity:0.6">Balanced</span></div>
-          <div class="q-btn" onclick="setQuality('high')">1080p<br><span style="font-size:9px;opacity:0.6">High quality</span></div>
-        </div>
-      </div>
-
-      <!-- Diagnostics -->
-      <div class="stats-grid">
-        <div class="stat-item">
-          <div class="stat-label">CAMERA</div>
-          <div class="stat-value" id="camStatus">—</div>
-        </div>
-        <div class="stat-item">
-          <div class="stat-label">RESOLUTION</div>
-          <div class="stat-value" id="camRes">—</div>
-        </div>
-        <div class="stat-item">
-          <div class="stat-label">NETWORK</div>
-          <div class="stat-value" id="netType">—</div>
-        </div>
-        <div class="stat-item">
-          <div class="stat-label">BITRATE ↑</div>
-          <div class="stat-value" id="bitrate">—</div>
-        </div>
-      </div>
+  <div class="role-grid">
+    <div class="role-card cam" onclick="chooseRole('cam')" tabindex="0">
+      <span class="rc-icon">📲</span>
+      <div class="rc-title">Camera</div>
+      <div class="rc-sub">Phone A · Send</div>
     </div>
-
-    <!-- Offer Code -->
-    <div class="panel" id="offerPanel">
-      <div class="panel-title">Step 1 — Start & Share Code</div>
-      <button class="btn btn-primary btn-full" id="startBtn" onclick="startCamera()">
-        <span>🎥</span> Allow Camera & Start
-      </button>
-      <div id="offerCodeWrap" class="hidden" style="margin-top:14px;">
-        <p style="font-size:12px;color:var(--muted);margin-bottom:8px;">Copy this code → paste it on Phone B:</p>
-        <div class="code-box" id="offerCode">
-          <button class="copy-btn" onclick="copyCode('offerCode')">Copy</button>
-          <span id="offerCodeText">Generating...</span>
-        </div>
-      </div>
-    </div>
-
-    <!-- Answer Code -->
-    <div class="panel hidden" id="answerInputPanel">
-      <div class="panel-title">Step 2 — Paste Answer from Phone B</div>
-      <div class="input-row">
-        <input type="text" id="answerInput" placeholder="Paste answer code here..." />
-        <button class="btn btn-primary" onclick="connectAnswer()">Connect</button>
-      </div>
-    </div>
-
-    <!-- Log -->
-    <div class="panel">
-      <div class="panel-title">Log</div>
-      <div class="log-box" id="senderLog"></div>
+    <div class="role-card view" onclick="chooseRole('view')" tabindex="0">
+      <span class="rc-icon">📺</span>
+      <div class="rc-title">Viewer</div>
+      <div class="rc-sub">Phone B · Watch</div>
     </div>
   </div>
 
-  <!-- RECEIVER PANEL -->
-  <div id="receiverPanel" class="hidden">
-
-    <div class="panel">
-      <div class="panel-title">Live Stream</div>
-      <div class="video-wrap">
-        <video id="remoteVideo" autoplay playsinline></video>
-        <div class="video-placeholder" id="remotePlaceholder">
-          <span class="ph-icon">📺</span>
-          <span>Waiting for stream...</span>
-        </div>
-        <div class="live-badge" id="remoteLiveBadge">● LIVE</div>
-      </div>
-
-      <!-- Diagnostics -->
-      <div class="stats-grid">
-        <div class="stat-item">
-          <div class="stat-label">STREAM</div>
-          <div class="stat-value" id="streamStatus">—</div>
-        </div>
-        <div class="stat-item">
-          <div class="stat-label">RESOLUTION</div>
-          <div class="stat-value" id="remoteRes">—</div>
-        </div>
-        <div class="stat-item">
-          <div class="stat-label">LATENCY</div>
-          <div class="stat-value" id="latency">—</div>
-        </div>
-        <div class="stat-item">
-          <div class="stat-label">BITRATE ↓</div>
-          <div class="stat-value" id="recvBitrate">—</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Paste Offer -->
-    <div class="panel" id="offerInputPanel">
-      <div class="panel-title">Step 1 — Paste Code from Phone A</div>
-      <div class="input-row">
-        <input type="text" id="offerInput" placeholder="Paste offer code from Phone A..." />
-        <button class="btn btn-primary" onclick="receiveOffer()">Generate Answer</button>
-      </div>
-    </div>
-
-    <!-- Answer Code to send back -->
-    <div class="panel hidden" id="answerCodePanel">
-      <div class="panel-title">Step 2 — Copy Answer → Send to Phone A</div>
-      <div class="code-box" id="answerCode">
-        <button class="copy-btn" onclick="copyCode('answerCode')">Copy</button>
-        <span id="answerCodeText">Generating...</span>
-      </div>
-      <p style="font-size:11px;color:var(--muted);margin-top:10px;font-family:'JetBrains Mono',monospace;">
-        → Paste this on Phone A to complete connection
-      </p>
-    </div>
-
-    <!-- Log -->
-    <div class="panel">
-      <div class="panel-title">Log</div>
-      <div class="log-box" id="receiverLog"></div>
+  <div class="panel">
+    <div class="panel-label">Quick Guide</div>
+    <div style="font-size:13px;line-height:1.8;color:var(--muted)">
+      <b style="color:var(--text)">Phone A</b> → Camera → Allow camera → share <b style="color:var(--accent)">4-digit code</b><br>
+      <b style="color:var(--text)">Phone B</b> → Viewer → enter code → done ✓<br>
+      <span style="color:var(--accent);font-size:11px;font-family:'IBM Plex Mono',monospace">Refresh-safe · auto-reconnects · background</span>
     </div>
   </div>
-
-  <!-- INSTRUCTIONS -->
-  <div class="panel" id="instructionsPanel">
-    <div class="panel-title">How to Use</div>
-    <div class="steps">
-      <div class="step"><div class="step-num">1</div><div class="step-text"><strong>Open this page on both phones</strong> — same URL (host it once, open everywhere)</div></div>
-      <div class="step"><div class="step-num">2</div><div class="step-text"><strong>Phone A (old phone):</strong> tap "Phone A · Send Camera", then "Allow Camera & Start"</div></div>
-      <div class="step"><div class="step-num">3</div><div class="step-text"><strong>Phone A:</strong> copy the generated offer code (big text box)</div></div>
-      <div class="step"><div class="step-num">4</div><div class="step-text"><strong>Phone B (your main phone):</strong> tap "Phone B · View Stream", paste the offer code, tap "Generate Answer"</div></div>
-      <div class="step"><div class="step-num">5</div><div class="step-text"><strong>Phone B:</strong> copy the answer code that appears</div></div>
-      <div class="step"><div class="step-num">6</div><div class="step-text"><strong>Phone A:</strong> paste the answer code into the second box, tap "Connect" — stream goes live! 🎉</div></div>
-    </div>
-  </div>
-
-  <p style="text-align:center;font-size:10px;color:var(--muted);padding:16px 0;font-family:'JetBrains Mono',monospace;">
-    WebRTC · P2P encrypted · no server stores video
-  </p>
-
 </div>
 
-<script>
-// ─── State ───────────────────────────────────────────────────────────────────
-let role = null;
-let pc = null;
-let localStream = null;
-let selectedQuality = 'medium';
-let statsInterval = null;
+<!-- ════════════════════════════════════════════
+     SCREEN: CAMERA (Phone A)
+════════════════════════════════════════════ -->
+<div class="screen" id="sc-cam">
+  <div class="hdr">
+    <div class="hdr-icon">📲</div>
+    <div>
+      <div class="hdr h1">Camera <span>Phone A</span></div>
+      <div class="hdr-sub">sending stream</div>
+    </div>
+  </div>
 
-const qualities = {
-  low:    { width: 640,  height: 360,  frameRate: 20, bitrate: 300000 },
-  medium: { width: 1280, height: 720,  frameRate: 30, bitrate: 1000000 },
-  high:   { width: 1920, height: 1080, frameRate: 30, bitrate: 2500000 }
+  <div class="status-bar">
+    <div class="sdot" id="camSdot"></div>
+    <span class="stext" id="camStext">Starting…</span>
+  </div>
+
+  <!-- Video preview -->
+  <div class="panel">
+    <div class="panel-label">Preview</div>
+    <div class="vid-wrap">
+      <video id="localVid" autoplay muted playsinline></video>
+      <div class="vid-ph" id="localPh"><span class="ph-ico">📷</span><span>Inactive</span></div>
+      <div class="live-pill" id="camLive">● LIVE</div>
+    </div>
+
+    <!-- Quality -->
+    <div style="margin-top:12px;">
+      <div class="panel-label" style="margin-bottom:6px;">Quality</div>
+      <div class="q-row">
+        <div class="qb" onclick="setQ('low')">360p<span class="qs">Low data</span></div>
+        <div class="qb active" onclick="setQ('med')">720p<span class="qs">Balanced</span></div>
+        <div class="qb" onclick="setQ('hi')">1080p<span class="qs">Best</span></div>
+      </div>
+    </div>
+
+    <div class="stats-grid">
+      <div class="stat"><div class="stat-l">CAMERA</div><div class="stat-v" id="s-cam">—</div></div>
+      <div class="stat"><div class="stat-l">RESOLUTION</div><div class="stat-v" id="s-res">—</div></div>
+      <div class="stat"><div class="stat-l">NETWORK</div><div class="stat-v" id="s-net">—</div></div>
+      <div class="stat"><div class="stat-l">BITRATE ↑</div><div class="stat-v" id="s-bit">—</div></div>
+    </div>
+  </div>
+
+  <!-- 4-digit code -->
+  <div class="panel" id="camCodePanel">
+    <div class="panel-label">Pairing Code — tell Phone B</div>
+    <div class="code-display" id="codeDisplay">
+      <div class="digit-box" id="d0">—</div>
+      <div class="digit-box" id="d1">—</div>
+      <div class="digit-box" id="d2">—</div>
+      <div class="digit-box" id="d3">—</div>
+    </div>
+    <div class="code-hint" id="codeHint">Starting camera…</div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-label">Log</div>
+    <div class="log" id="camLog"></div>
+  </div>
+
+  <button class="btn btn-red" onclick="disconnect()">⏹ Disconnect & Stop</button>
+  <button class="btn btn-ghost" style="margin-top:8px" onclick="goHome()">← Back to Home</button>
+</div>
+
+<!-- ════════════════════════════════════════════
+     SCREEN: VIEWER (Phone B)
+════════════════════════════════════════════ -->
+<div class="screen" id="sc-view">
+  <div class="hdr">
+    <div class="hdr-icon">📺</div>
+    <div>
+      <div class="hdr h1">Viewer <span>Phone B</span></div>
+      <div class="hdr-sub">receiving stream</div>
+    </div>
+  </div>
+
+  <div class="status-bar">
+    <div class="sdot" id="viewSdot"></div>
+    <span class="stext" id="viewStext">Enter pairing code</span>
+  </div>
+
+  <!-- Pin entry (shown before connect) -->
+  <div class="panel" id="pinPanel">
+    <div class="panel-label">Enter 4-Digit Code from Phone A</div>
+    <div class="pin-row">
+      <input class="pin-digit" id="p0" maxlength="1" inputmode="numeric" pattern="[0-9]" autocomplete="off"/>
+      <input class="pin-digit" id="p1" maxlength="1" inputmode="numeric" pattern="[0-9]" autocomplete="off"/>
+      <input class="pin-digit" id="p2" maxlength="1" inputmode="numeric" pattern="[0-9]" autocomplete="off"/>
+      <input class="pin-digit" id="p3" maxlength="1" inputmode="numeric" pattern="[0-9]" autocomplete="off"/>
+    </div>
+    <button class="btn btn-blue" id="connectBtn" onclick="connectToCode()" disabled>
+      Connect
+    </button>
+  </div>
+
+  <!-- Video (shown after connect) -->
+  <div class="panel" id="viewVidPanel" style="display:none">
+    <div class="panel-label">Live Stream</div>
+    <div class="vid-wrap">
+      <video id="remoteVid" autoplay playsinline></video>
+      <div class="vid-ph" id="remotePh"><span class="ph-ico">📺</span><span>Buffering…</span></div>
+      <div class="live-pill" id="viewLive">● LIVE</div>
+    </div>
+    <div class="stats-grid">
+      <div class="stat"><div class="stat-l">STREAM</div><div class="stat-v" id="vs-str">—</div></div>
+      <div class="stat"><div class="stat-l">RESOLUTION</div><div class="stat-v" id="vs-res">—</div></div>
+      <div class="stat"><div class="stat-l">LATENCY</div><div class="stat-v" id="vs-lat">—</div></div>
+      <div class="stat"><div class="stat-l">BITRATE ↓</div><div class="stat-v" id="vs-bit">—</div></div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-label">Log</div>
+    <div class="log" id="viewLog"></div>
+  </div>
+
+  <button class="btn btn-ghost" onclick="goHome()">← Back to Home</button>
+</div>
+
+</div><!-- .app -->
+
+<!-- Firebase + App Script -->
+<script type="module">
+// ══════════════════════════════════════════════════════════════════════════════
+// FIREBASE CONFIG
+// Using a public demo project — you can replace with your own free Firebase project
+// ══════════════════════════════════════════════════════════════════════════════
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js';
+import { getDatabase, ref, set, get, onValue, remove, onDisconnect, serverTimestamp }
+  from 'https://www.gstatic.com/firebasejs/12.10.0/firebase-database.js';
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBJceKGsgRSyclrnYYTv9TC5qFZACZaLY0",
+  authDomain: "webrtccam.firebaseapp.com",
+  databaseURL: "https://webrtccam-default-rtdb.firebaseio.com",
+  projectId: "webrtccam",
+  storageBucket: "webrtccam.firebasestorage.app",
+  messagingSenderId: "278963365192",
+  appId: "1:278963365192:web:3a06dba93e810ff62a3f7d",
+  measurementId: "G-8QGXBDVYPE"
 };
 
-// ICE servers — free STUN + open TURN for NAT traversal
-const iceConfig = {
+let app, db;
+try {
+  app = initializeApp(firebaseConfig);
+  db = getDatabase(app);
+} catch(e) {
+  console.error('Firebase init error:', e);
+}
+
+// ── ICE servers ──────────────────────────────────────────────────────────────
+const ICE = {
   iceServers: [
     { urls: 'stun:stun.l.google.com:19302' },
     { urls: 'stun:stun1.l.google.com:19302' },
-    { urls: 'stun:stun2.l.google.com:19302' },
     { urls: 'stun:stun.services.mozilla.com' },
-    {
-      urls: 'turn:openrelay.metered.ca:80',
-      username: 'openrelayproject',
-      credential: 'openrelayproject'
-    },
-    {
-      urls: 'turn:openrelay.metered.ca:443',
-      username: 'openrelayproject',
-      credential: 'openrelayproject'
-    },
-    {
-      urls: 'turn:openrelay.metered.ca:443?transport=tcp',
-      username: 'openrelayproject',
-      credential: 'openrelayproject'
-    }
-  ]
+    { urls: 'turn:openrelay.metered.ca:80',    username: 'openrelayproject', credential: 'openrelayproject' },
+    { urls: 'turn:openrelay.metered.ca:443',   username: 'openrelayproject', credential: 'openrelayproject' },
+    { urls: 'turn:openrelay.metered.ca:443?transport=tcp', username: 'openrelayproject', credential: 'openrelayproject' }
+  ],
+  iceCandidatePoolSize: 10,
+  bundlePolicy: 'max-bundle',
+  rtcpMuxPolicy: 'require'
 };
 
-// ─── Logging ──────────────────────────────────────────────────────────────────
-function log(id, msg, type = 'info') {
-  const box = document.getElementById(id);
-  if (!box) return;
-  const line = document.createElement('div');
-  line.className = `log-line ${type}`;
-  const t = new Date().toLocaleTimeString('en', { hour12: false });
-  line.textContent = `[${t}] ${msg}`;
-  box.appendChild(line);
-  box.scrollTop = box.scrollHeight;
+const QUALITIES = {
+  low: { width:640,  height:360,  frameRate:20, bitrate:400000  },
+  med: { width:1280, height:720,  frameRate:30, bitrate:1200000 },
+  hi:  { width:1920, height:1080, frameRate:30, bitrate:2500000 }
+};
+
+let role = null, pc = null, localStream = null;
+let currentCode = null, selectedQ = 'med';
+let statsInterval = null, prevB = 0, prevTs = Date.now();
+let sessionKey = null; // localStorage key for reconnect
+
+// ── Screen helper ─────────────────────────────────────────────────────────────
+function show(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
 }
 
-function slog(msg, t) { log('senderLog', msg, t); }
-function rlog(msg, t) { log('receiverLog', msg, t); }
+// ── Log ───────────────────────────────────────────────────────────────────────
+function L(boxId, msg, t='') {
+  const b = document.getElementById(boxId);
+  if (!b) return;
+  const d = document.createElement('div');
+  d.className = 'll ' + t;
+  d.textContent = '[' + new Date().toLocaleTimeString('en',{hour12:false}) + '] ' + msg;
+  b.appendChild(d);
+  b.scrollTop = b.scrollHeight;
+}
+const clog = (m,t) => L('camLog',m,t);
+const vlog = (m,t) => L('viewLog',m,t);
 
-// ─── Status bar ───────────────────────────────────────────────────────────────
-function setStatus(msg, state = '') {
-  const dot = document.getElementById('statusDot');
-  const txt = document.getElementById('statusText');
-  dot.className = 'status-dot ' + state;
-  txt.className = 'status-text ' + state;
-  txt.textContent = msg;
+// ── Status helpers ────────────────────────────────────────────────────────────
+function camStatus(msg, s='') {
+  const dot = document.getElementById('camSdot'), tx = document.getElementById('camStext');
+  dot.className = 'sdot ' + s; tx.className = 'stext ' + s; tx.textContent = msg;
+}
+function viewStatus(msg, s='') {
+  const dot = document.getElementById('viewSdot'), tx = document.getElementById('viewStext');
+  dot.className = 'sdot ' + s; tx.className = 'stext ' + s; tx.textContent = msg;
 }
 
-// ─── Role ─────────────────────────────────────────────────────────────────────
-function setRole(r) {
+// ── Quality ───────────────────────────────────────────────────────────────────
+window.setQ = q => {
+  selectedQ = q;
+  document.querySelectorAll('.qb').forEach((b,i) => {
+    b.classList.toggle('active', ['low','med','hi'][i] === q);
+  });
+};
+
+// ── Role choice ───────────────────────────────────────────────────────────────
+window.chooseRole = r => {
   role = r;
-  document.querySelectorAll('.role-btn').forEach(b => b.classList.remove('active'));
-  document.querySelector(`.role-btn.${r === 'sender' ? 'sender' : 'receiver'}`).classList.add('active');
-  document.getElementById('senderPanel').classList.toggle('hidden', r !== 'sender');
-  document.getElementById('receiverPanel').classList.toggle('hidden', r !== 'receiver');
-  document.getElementById('instructionsPanel').classList.add('hidden');
-  setStatus(r === 'sender' ? 'Phone A ready — start camera' : 'Phone B ready — paste offer code', '');
-
-  // Detect network type
-  if (navigator.connection) {
-    const conn = navigator.connection;
-    const el = document.getElementById('netType');
-    if (el) {
-      el.textContent = (conn.effectiveType || conn.type || '—').toUpperCase();
-      el.className = 'stat-value ' + (['4g','wifi'].includes(conn.effectiveType) ? 'ok' : 'warn');
-    }
+  if (!db) {
+    alert('⚠️ Firebase not configured!\n\nYou must create a free Firebase project.\nSee the instructions panel below.');
+    return;
   }
+  if (r === 'cam') startCam();
+  else startViewer();
+};
+
+window.goHome = () => { show('sc-role'); cleanup(); };
+
+// ── Check for saved session on load ──────────────────────────────────────────
+window.addEventListener('load', () => {
+  const saved = localStorage.getItem('livecam_session');
+  if (saved) {
+    try {
+      const s = JSON.parse(saved);
+      if (Date.now() - s.ts < 3600000) { // 1 hour
+        document.getElementById('reconnectNotice').style.display = 'block';
+        // auto-reconnect
+        setTimeout(() => {
+          if (s.role === 'cam') { role = 'cam'; startCam(s.code); }
+          else { role = 'view'; startViewer(s.code); }
+        }, 800);
+      } else { localStorage.removeItem('livecam_session'); }
+    } catch { localStorage.removeItem('livecam_session'); }
+  }
+  if (!firebaseConfig.databaseURL.includes('demo')) return;
+  // Show setup notice if still using demo config
+});
+
+function saveSession(r, code) {
+  localStorage.setItem('livecam_session', JSON.stringify({ role:r, code, ts:Date.now() }));
 }
 
-// ─── Quality ──────────────────────────────────────────────────────────────────
-function setQuality(q) {
-  selectedQuality = q;
-  document.querySelectorAll('.q-btn').forEach((b, i) => {
-    b.classList.toggle('active', ['low','medium','high'][i] === q);
-  });
-}
+// ══════════════════════════════════════════════════════════════════════════════
+//  CAMERA PHONE (Sender)
+// ══════════════════════════════════════════════════════════════════════════════
+async function startCam(savedCode) {
+  show('sc-cam');
+  camStatus('Requesting camera…', 'connecting');
+  clog('Starting camera phone…', 'i');
 
-// ─── Copy ─────────────────────────────────────────────────────────────────────
-function copyCode(id) {
-  const el = document.getElementById(id === 'offerCode' ? 'offerCodeText' : 'answerCodeText');
-  navigator.clipboard.writeText(el.textContent).then(() => {
-    const btn = document.querySelector(`#${id} .copy-btn`);
-    btn.textContent = '✓ Copied!';
-    setTimeout(() => btn.textContent = 'Copy', 2000);
-  });
-}
+  // Generate or reuse 4-digit code
+  const code = savedCode || String(Math.floor(1000 + Math.random() * 9000));
+  currentCode = code;
+  displayCode(code);
+  saveSession('cam', code);
 
-// ─── Compress / encode SDP ────────────────────────────────────────────────────
-function encode(obj) { return btoa(JSON.stringify(obj)); }
-function decode(str) { return JSON.parse(atob(str.trim())); }
+  // Network info
+  if (navigator.connection) {
+    const c = navigator.connection;
+    const el = document.getElementById('s-net');
+    el.textContent = (c.effectiveType || c.type || '—').toUpperCase();
+    el.className = 'stat-v ' + (['4g'].includes(c.effectiveType) ? 'ok' : 'warn');
+  }
 
-// ─── Create peer connection ────────────────────────────────────────────────────
-function createPc(logFn) {
-  const p = new RTCPeerConnection(iceConfig);
-  p.oniceconnectionstatechange = () => {
-    logFn(`ICE state: ${p.iceConnectionState}`);
-    if (p.iceConnectionState === 'connected' || p.iceConnectionState === 'completed') {
-      setStatus('🟢 Connected — streaming live!', 'connected');
-    } else if (p.iceConnectionState === 'failed') {
-      setStatus('❌ Connection failed — retry', 'error');
-    } else if (p.iceConnectionState === 'checking') {
-      setStatus('Establishing connection...', 'connecting');
-    }
-  };
-  return p;
-}
-
-// ─── SENDER ───────────────────────────────────────────────────────────────────
-async function startCamera() {
-  const btn = document.getElementById('startBtn');
-  btn.disabled = true;
-  btn.textContent = '⏳ Requesting camera...';
-  setStatus('Requesting camera permission...', 'connecting');
-
-  const q = qualities[selectedQuality];
-  slog('Requesting camera: ' + selectedQuality, 'info');
-
+  // Request camera
+  const q = QUALITIES[selectedQ];
   try {
     localStream = await navigator.mediaDevices.getUserMedia({
       video: {
-        width:  { ideal: q.width },
-        height: { ideal: q.height },
-        frameRate: { ideal: q.frameRate },
-        facingMode: 'environment' // back camera on mobile
+        width: { ideal: q.width }, height: { ideal: q.height },
+        frameRate: { ideal: q.frameRate }, facingMode: 'environment'
       },
       audio: false
     });
 
-    const vid = document.getElementById('localVideo');
+    const vid = document.getElementById('localVid');
     vid.srcObject = localStream;
-    document.getElementById('localPlaceholder').style.display = 'none';
-    document.getElementById('liveBadge').style.display = 'block';
+    document.getElementById('localPh').style.display = 'none';
 
-    const track = localStream.getVideoTracks()[0];
-    const settings = track.getSettings();
-    document.getElementById('camStatus').textContent = 'ACTIVE';
-    document.getElementById('camStatus').className = 'stat-value ok';
-    document.getElementById('camRes').textContent = `${settings.width}×${settings.height}`;
+    const settings = localStream.getVideoTracks()[0].getSettings();
+    document.getElementById('s-cam').textContent = 'ACTIVE';
+    document.getElementById('s-cam').className = 'stat-v ok';
+    document.getElementById('s-res').textContent = settings.width + '×' + settings.height;
+    clog('Camera: ' + settings.width + '×' + settings.height + ' @' + settings.frameRate + 'fps', 'ok');
+    camStatus('Camera active — waiting for viewer…', '');
 
-    slog(`Camera: ${settings.width}×${settings.height} @${settings.frameRate}fps`, 'ok');
-    setStatus('Camera active — creating connection...', 'connecting');
+    document.getElementById('codeHint').textContent = 'Give this code to Phone B';
 
-    btn.textContent = '✓ Camera Active';
-
-    // Create offer
-    pc = createPc(slog);
-
-    // Apply bandwidth limit
-    localStream.getTracks().forEach(track => {
-      const sender = pc.addTrack(track, localStream);
-      const params = sender.getParameters();
-      if (!params.encodings) params.encodings = [{}];
-      params.encodings[0].maxBitrate = q.bitrate;
-      sender.setParameters(params).catch(() => {});
-    });
-
-    // Collect all ICE before sending (trickle-less for simplicity)
-    const offer = await pc.createOffer();
-
-    // Prefer H264 for better mobile compatibility
-    offer.sdp = preferH264(offer.sdp);
-    await pc.setLocalDescription(offer);
-
-    slog('Offer created, gathering ICE candidates...', 'info');
-    setStatus('Gathering network info...', 'connecting');
-
-    await waitForICE(pc);
-
-    const code = encode(pc.localDescription);
-    document.getElementById('offerCodeText').textContent = code;
-    document.getElementById('offerCodeWrap').classList.remove('hidden');
-    document.getElementById('answerInputPanel').classList.remove('hidden');
-
-    slog('Offer ready — share code with Phone B', 'ok');
-    setStatus('📋 Share code with Phone B', '');
-
-    // Start sender stats
-    startSenderStats();
+    // Listen for viewer joining
+    listenForViewer(code);
 
   } catch (err) {
-    slog('Camera error: ' + err.message, 'err');
-    document.getElementById('camStatus').textContent = 'DENIED';
-    document.getElementById('camStatus').className = 'stat-value err';
-    setStatus('Camera permission denied', 'error');
-    btn.disabled = false;
-    btn.innerHTML = '<span>🔄</span> Retry';
-    alert('Camera permission denied. Please allow camera access in your browser settings, then try again.');
+    document.getElementById('s-cam').textContent = 'DENIED';
+    document.getElementById('s-cam').className = 'stat-v err';
+    camStatus('Camera denied — check permissions', 'err');
+    clog('Camera error: ' + err.message, 'e');
+    alert('Camera access denied.\n\nOn Android Chrome:\n1. Tap the lock icon in address bar\n2. Set Camera to Allow\n3. Refresh the page');
   }
 }
 
-async function connectAnswer() {
-  const raw = document.getElementById('answerInput').value.trim();
-  if (!raw) { alert('Paste the answer code from Phone B first.'); return; }
-
-  try {
-    const answer = decode(raw);
-    await pc.setRemoteDescription(new RTCSessionDescription(answer));
-    slog('Answer applied — connecting...', 'ok');
-    setStatus('Connecting to Phone B...', 'connecting');
-  } catch (e) {
-    slog('Invalid answer code: ' + e.message, 'err');
-    alert('Invalid answer code. Make sure you copied it completely from Phone B.');
+function displayCode(code) {
+  for (let i = 0; i < 4; i++) {
+    const el = document.getElementById('d' + i);
+    el.textContent = code[i];
+    el.classList.add('filled');
   }
 }
 
-// ─── RECEIVER ─────────────────────────────────────────────────────────────────
-async function receiveOffer() {
-  const raw = document.getElementById('offerInput').value.trim();
-  if (!raw) { alert('Paste the offer code from Phone A first.'); return; }
+async function listenForViewer(code) {
+  const roomRef = ref(db, 'rooms/' + code);
+  clog('Waiting for viewer on room ' + code + '…', 'i');
 
-  setStatus('Processing offer...', 'connecting');
-  rlog('Processing offer code...', 'info');
+  // Clean up old room data
+  await set(ref(db, 'rooms/' + code + '/offer'), null);
+  await set(ref(db, 'rooms/' + code + '/answer'), null);
+  await set(ref(db, 'rooms/' + code + '/iceCam'), null);
+  await set(ref(db, 'rooms/' + code + '/iceView'), null);
 
-  try {
-    const offer = decode(raw);
-    pc = createPc(rlog);
+  // Watch for answer from viewer
+  onValue(ref(db, 'rooms/' + code + '/answer'), async snap => {
+    if (!snap.exists()) return;
+    const answer = snap.val();
+    if (pc && pc.currentRemoteDescription) return; // already set
 
-    pc.ontrack = (e) => {
-      rlog('Stream received!', 'ok');
-      const vid = document.getElementById('remoteVideo');
-      vid.srcObject = e.streams[0];
-      vid.onloadedmetadata = () => {
-        document.getElementById('remotePlaceholder').style.display = 'none';
-        document.getElementById('remoteLiveBadge').style.display = 'block';
-        document.getElementById('streamStatus').textContent = 'LIVE';
-        document.getElementById('streamStatus').className = 'stat-value ok';
-        setStatus('🟢 Live stream connected!', 'connected');
-        rlog('Video playing!', 'ok');
-        startReceiverStats();
-      };
-    };
+    clog('Viewer connected — completing handshake…', 'i');
+    camStatus('Viewer found — connecting…', 'connecting');
 
-    await pc.setRemoteDescription(new RTCSessionDescription(offer));
-    const answer = await pc.createAnswer();
-    await pc.setLocalDescription(answer);
+    try {
+      await pc.setRemoteDescription(new RTCSessionDescription(answer));
+      clog('Remote description set ✓', 'ok');
+    } catch (e) { clog('Answer error: ' + e.message, 'e'); }
+  });
 
-    rlog('Answer created, gathering ICE...', 'info');
-    setStatus('Finalizing connection...', 'connecting');
+  // Watch for ICE from viewer
+  onValue(ref(db, 'rooms/' + code + '/iceView'), async snap => {
+    if (!snap.exists() || !pc) return;
+    const candidates = snap.val();
+    for (const k in candidates) {
+      try {
+        const c = candidates[k];
+        if (c && c.candidate) await pc.addIceCandidate(new RTCIceCandidate(c));
+      } catch {}
+    }
+  });
 
-    await waitForICE(pc);
-
-    const code = encode(pc.localDescription);
-    document.getElementById('answerCodeText').textContent = code;
-    document.getElementById('answerCodePanel').classList.remove('hidden');
-    document.getElementById('offerInputPanel').classList.add('hidden');
-
-    rlog('Answer ready — send code to Phone A', 'ok');
-    setStatus('📋 Copy answer code → send to Phone A', '');
-
-  } catch (e) {
-    rlog('Error: ' + e.message, 'err');
-    setStatus('Failed to process offer', 'error');
-    alert('Invalid offer code. Make sure you copied it completely from Phone A.');
-  }
+  // Create PC and offer
+  await createCamPC(code);
 }
 
-// ─── ICE gathering wait ───────────────────────────────────────────────────────
-function waitForICE(p) {
-  return new Promise(resolve => {
-    if (p.iceGatheringState === 'complete') { resolve(); return; }
-    const check = () => {
-      if (p.iceGatheringState === 'complete') {
-        p.removeEventListener('icegatheringstatechange', check);
-        resolve();
+async function createCamPC(code) {
+  pc = new RTCPeerConnection(ICE);
+  const q = QUALITIES[selectedQ];
+
+  localStream.getTracks().forEach(track => {
+    pc.addTrack(track, localStream);
+  });
+
+  // Set encoding constraints for quality
+  pc.getSenders().forEach(sender => {
+    if (sender.track && sender.track.kind === 'video') {
+      const p = sender.getParameters();
+      if (p.encodings && p.encodings.length > 0) {
+        p.encodings[0].maxBitrate = q.bitrate;
+      } else {
+        p.encodings = [{ maxBitrate: q.bitrate, networkPriority: 'high', priority: 'high' }];
       }
+      sender.setParameters(p).catch(() => {});
+    }
+  });
+
+  // ICE candidates → Firebase
+  let iceCandidates = {};
+  let iceIdx = 0;
+  pc.onicecandidate = e => {
+    if (e.candidate) {
+      iceCandidates['c' + iceIdx++] = e.candidate.toJSON();
+      set(ref(db, 'rooms/' + code + '/iceCam'), iceCandidates);
+    }
+  };
+
+  pc.oniceconnectionstatechange = () => {
+    clog('ICE: ' + pc.iceConnectionState);
+    if (pc.iceConnectionState === 'connected' || pc.iceConnectionState === 'completed') {
+      camStatus('🟢 Viewer connected — streaming!', 'on');
+      document.getElementById('camLive').style.display = 'block';
+      startCamStats();
+    } else if (pc.iceConnectionState === 'failed') {
+      camStatus('Connection failed — retrying…', 'err');
+      clog('ICE failed — attempting restart', 'w');
+      pc.restartIce();
+    } else if (pc.iceConnectionState === 'disconnected') {
+      camStatus('Viewer disconnected — waiting…', 'connecting');
+      document.getElementById('camLive').style.display = 'none';
+      clog('Viewer disconnected', 'w');
+    }
+  };
+
+  const offer = await pc.createOffer({
+    offerToReceiveAudio: false,
+    offerToReceiveVideo: false
+  });
+
+  // Patch SDP for better quality: remove bandwidth limits, prefer H264
+  offer.sdp = patchSDP(offer.sdp, q.bitrate);
+  await pc.setLocalDescription(offer);
+
+  // Push offer to Firebase
+  await set(ref(db, 'rooms/' + code + '/offer'), { type: offer.type, sdp: offer.sdp });
+  clog('Offer published ✓', 'ok');
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+//  VIEWER PHONE (Receiver)
+// ══════════════════════════════════════════════════════════════════════════════
+function startViewer(savedCode) {
+  show('sc-view');
+  vlog('Viewer ready', 'i');
+  viewStatus('Enter 4-digit code from Phone A', '');
+
+  if (savedCode) {
+    // Auto-fill and connect
+    for (let i = 0; i < 4; i++) {
+      const el = document.getElementById('p' + i);
+      el.value = savedCode[i];
+      el.classList.add('filled-r');
+    }
+    document.getElementById('connectBtn').disabled = false;
+    setTimeout(() => connectToCode(savedCode), 500);
+  } else {
+    setupPinInput();
+  }
+}
+
+function setupPinInput() {
+  for (let i = 0; i < 4; i++) {
+    const el = document.getElementById('p' + i);
+    el.addEventListener('input', e => {
+      const v = e.target.value.replace(/\D/g,'');
+      e.target.value = v;
+      if (v) {
+        e.target.classList.add('filled-r');
+        if (i < 3) document.getElementById('p' + (i+1)).focus();
+      } else {
+        e.target.classList.remove('filled-r');
+      }
+      // enable connect when all 4 filled
+      const all = [0,1,2,3].every(j => document.getElementById('p'+j).value.length === 1);
+      document.getElementById('connectBtn').disabled = !all;
+    });
+    el.addEventListener('keydown', e => {
+      if (e.key === 'Backspace' && !e.target.value && i > 0) {
+        document.getElementById('p' + (i-1)).focus();
+      }
+    });
+  }
+}
+
+window.connectToCode = async (autoCode) => {
+  const code = autoCode || [0,1,2,3].map(i => document.getElementById('p'+i).value).join('');
+  if (code.length !== 4) return;
+
+  currentCode = code;
+  saveSession('view', code);
+  document.getElementById('connectBtn').disabled = true;
+  document.getElementById('connectBtn').innerHTML = '<span class="spinner"></span> Connecting…';
+  viewStatus('Looking up room ' + code + '…', 'connecting');
+  vlog('Connecting to room ' + code + '…', 'i');
+
+  // Check if offer exists
+  const offerSnap = await get(ref(db, 'rooms/' + code + '/offer'));
+  if (!offerSnap.exists()) {
+    viewStatus('Code not found — check the number', 'err');
+    vlog('Room ' + code + ' not found', 'e');
+    document.getElementById('connectBtn').disabled = false;
+    document.getElementById('connectBtn').textContent = 'Connect';
+    return;
+  }
+
+  vlog('Offer found — building connection…', 'ok');
+
+  // Show video panel
+  document.getElementById('pinPanel').style.display = 'none';
+  document.getElementById('viewVidPanel').style.display = 'block';
+
+  await createViewerPC(code, offerSnap.val());
+};
+
+async function createViewerPC(code, offerData) {
+  pc = new RTCPeerConnection(ICE);
+
+  pc.ontrack = e => {
+    vlog('Track received: ' + e.track.kind, 'ok');
+    const vid = document.getElementById('remoteVid');
+    const stream = e.streams[0] || new MediaStream([e.track]);
+    vid.srcObject = stream;
+
+    // Smooth playback settings
+    vid.playsInline = true;
+    vid.muted = false;
+
+    vid.onloadedmetadata = () => {
+      vlog('Video metadata loaded', 'ok');
+      vid.play().then(() => {
+        document.getElementById('remotePh').style.display = 'none';
+        document.getElementById('viewLive').style.display = 'block';
+        document.getElementById('vs-str').textContent = 'LIVE';
+        document.getElementById('vs-str').className = 'stat-v ok';
+        viewStatus('🟢 Live — streaming!', 'on');
+        vlog('Video playing ✓', 'ok');
+        startViewerStats();
+      }).catch(err => vlog('Play error: ' + err, 'e'));
     };
-    p.addEventListener('icegatheringstatechange', check);
-    // fallback timeout
-    setTimeout(resolve, 6000);
+
+    // Handle stalled video
+    vid.onstalled = () => {
+      vlog('Video stalled — resuming…', 'w');
+      vid.play().catch(() => {});
+    };
+    vid.onwaiting = () => {
+      vlog('Buffering…', 'w');
+    };
+  };
+
+  // Watch for ICE from camera
+  onValue(ref(db, 'rooms/' + code + '/iceCam'), async snap => {
+    if (!snap.exists()) return;
+    const candidates = snap.val();
+    for (const k in candidates) {
+      try {
+        const c = candidates[k];
+        if (c && c.candidate) await pc.addIceCandidate(new RTCIceCandidate(c));
+      } catch {}
+    }
   });
+
+  pc.oniceconnectionstatechange = () => {
+    vlog('ICE: ' + pc.iceConnectionState);
+    if (pc.iceConnectionState === 'failed') {
+      viewStatus('Connection lost — retrying…', 'err');
+      pc.restartIce();
+    } else if (pc.iceConnectionState === 'disconnected') {
+      viewStatus('Camera disconnected…', 'connecting');
+      document.getElementById('viewLive').style.display = 'none';
+    } else if (pc.iceConnectionState === 'connected' || pc.iceConnectionState === 'completed') {
+      viewStatus('🟢 Live — streaming!', 'on');
+    }
+  };
+
+  // Send ICE to Firebase
+  let iceCandidates = {};
+  let iceIdx = 0;
+  pc.onicecandidate = e => {
+    if (e.candidate) {
+      iceCandidates['c' + iceIdx++] = e.candidate.toJSON();
+      set(ref(db, 'rooms/' + code + '/iceView'), iceCandidates);
+    }
+  };
+
+  // Set remote offer
+  await pc.setRemoteDescription(new RTCSessionDescription(offerData));
+  const answer = await pc.createAnswer();
+  answer.sdp = patchSDP(answer.sdp, 2500000);
+  await pc.setLocalDescription(answer);
+
+  // Push answer
+  await set(ref(db, 'rooms/' + code + '/answer'), { type: answer.type, sdp: answer.sdp });
+  vlog('Answer sent ✓', 'ok');
 }
 
-// ─── H264 preference ─────────────────────────────────────────────────────────
-function preferH264(sdp) {
-  const lines = sdp.split('\r\n');
-  const h264 = [];
-  const others = [];
-  lines.forEach(l => {
-    if (l.includes('H264')) h264.push(l.match(/a=rtpmap:(\d+)/)?.[1]);
+// ══════════════════════════════════════════════════════════════════════════════
+//  SDP PATCH — removes bitrate caps, sets high priority
+// ══════════════════════════════════════════════════════════════════════════════
+function patchSDP(sdp, maxBitrate) {
+  const kbps = Math.floor(maxBitrate / 1000);
+  // Add bandwidth line after each m=video line
+  sdp = sdp.replace(/m=video.*\r\n/g, match => {
+    return match + 'b=AS:' + kbps + '\r\n';
   });
-  return sdp; // return as-is; browsers handle codec negotiation well enough
+  return sdp;
 }
 
-// ─── Stats ────────────────────────────────────────────────────────────────────
-let prevBytesSent = 0;
-let prevBytesRecv = 0;
-let prevTs = Date.now();
-
-function startSenderStats() {
+// ══════════════════════════════════════════════════════════════════════════════
+//  STATS
+// ══════════════════════════════════════════════════════════════════════════════
+function startCamStats() {
   if (statsInterval) clearInterval(statsInterval);
+  prevB = 0; prevTs = Date.now();
   statsInterval = setInterval(async () => {
     if (!pc) return;
     try {
@@ -980,61 +931,80 @@ function startSenderStats() {
       const now = Date.now();
       stats.forEach(s => {
         if (s.type === 'outbound-rtp' && s.kind === 'video') {
-          const bytes = s.bytesSent || 0;
-          const dt = (now - prevTs) / 1000;
-          const rate = Math.round((bytes - prevBytesSent) * 8 / dt / 1000);
-          prevBytesSent = bytes;
-          prevTs = now;
-          const el = document.getElementById('bitrate');
-          el.textContent = rate > 0 ? `${rate} kbps` : '—';
-          el.className = 'stat-value ' + (rate > 100 ? 'ok' : 'warn');
+          const b = s.bytesSent || 0;
+          const kbps = Math.round((b - prevB) * 8 / ((now - prevTs) / 1000) / 1000);
+          prevB = b; prevTs = now;
+          const el = document.getElementById('s-bit');
+          el.textContent = kbps > 0 ? kbps + ' kbps' : '—';
+          el.className = 'stat-v ' + (kbps > 200 ? 'ok' : 'warn');
         }
       });
-    } catch (_) {}
+    } catch {}
   }, 2000);
 }
 
-function startReceiverStats() {
+function startViewerStats() {
   if (statsInterval) clearInterval(statsInterval);
+  prevB = 0; prevTs = Date.now();
   statsInterval = setInterval(async () => {
     if (!pc) return;
     try {
       const stats = await pc.getStats();
       const now = Date.now();
-      const vid = document.getElementById('remoteVideo');
+      const vid = document.getElementById('remoteVid');
       if (vid.videoWidth) {
-        document.getElementById('remoteRes').textContent = `${vid.videoWidth}×${vid.videoHeight}`;
+        document.getElementById('vs-res').textContent = vid.videoWidth + '×' + vid.videoHeight;
       }
       stats.forEach(s => {
         if (s.type === 'inbound-rtp' && s.kind === 'video') {
-          const bytes = s.bytesReceived || 0;
-          const dt = (now - prevTs) / 1000;
-          const rate = Math.round((bytes - prevBytesRecv) * 8 / dt / 1000);
-          prevBytesRecv = bytes;
-          prevTs = now;
-          const el = document.getElementById('recvBitrate');
-          el.textContent = rate > 0 ? `${rate} kbps` : '—';
-          el.className = 'stat-value ' + (rate > 100 ? 'ok' : 'warn');
+          const b = s.bytesReceived || 0;
+          const kbps = Math.round((b - prevB) * 8 / ((now - prevTs) / 1000) / 1000);
+          prevB = b; prevTs = now;
+          const el = document.getElementById('vs-bit');
+          el.textContent = kbps > 0 ? kbps + ' kbps' : '—';
+          el.className = 'stat-v ' + (kbps > 100 ? 'ok' : 'warn');
         }
-        if (s.type === 'candidate-pair' && s.state === 'succeeded') {
+        if (s.type === 'candidate-pair' && (s.state === 'succeeded' || s.nominated)) {
           const rtt = s.currentRoundTripTime;
           if (rtt !== undefined) {
             const ms = Math.round(rtt * 1000);
-            const lat = document.getElementById('latency');
-            lat.textContent = `${ms} ms`;
-            lat.className = 'stat-value ' + (ms < 100 ? 'ok' : ms < 300 ? 'warn' : 'err');
+            const el = document.getElementById('vs-lat');
+            el.textContent = ms + ' ms';
+            el.className = 'stat-v ' + (ms < 100 ? 'ok' : ms < 300 ? 'warn' : 'err');
           }
         }
       });
-    } catch (_) {}
+    } catch {}
   }, 2000);
 }
 
-// ─── Network info on load ─────────────────────────────────────────────────────
-window.addEventListener('load', () => {
-  // show instructions initially
-  document.getElementById('instructionsPanel').classList.remove('hidden');
-});
+// ══════════════════════════════════════════════════════════════════════════════
+//  DISCONNECT / CLEANUP
+// ══════════════════════════════════════════════════════════════════════════════
+window.disconnect = async () => {
+  if (currentCode) {
+    try {
+      await remove(ref(db, 'rooms/' + currentCode));
+      vlog('Room cleared', 'ok');
+    } catch {}
+  }
+  localStorage.removeItem('livecam_session');
+  cleanup();
+  goHome();
+};
+
+function cleanup() {
+  if (statsInterval) { clearInterval(statsInterval); statsInterval = null; }
+  if (pc) { pc.close(); pc = null; }
+  if (localStream) {
+    localStream.getTracks().forEach(t => t.stop());
+    localStream = null;
+  }
+  currentCode = null;
+}
+
 </script>
+
+
 </body>
 </html>

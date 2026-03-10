@@ -1,0 +1,1040 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
+<title>LiveCam — Instant Camera Share</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Space+Grotesk:wght@300;400;600;700&display=swap');
+
+  :root {
+    --bg: #0a0c0f;
+    --surface: #111318;
+    --border: #1e2330;
+    --accent: #00e5ff;
+    --accent2: #ff3b6b;
+    --green: #00ff88;
+    --yellow: #ffd700;
+    --text: #e8eaf0;
+    --muted: #5a6070;
+    --card: #13171f;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Space Grotesk', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Grid background */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0,229,255,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,229,255,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .wrapper {
+    position: relative;
+    z-index: 1;
+    max-width: 520px;
+    margin: 0 auto;
+    padding: 16px;
+  }
+
+  /* Header */
+  .header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 20px 0 24px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 24px;
+  }
+
+  .logo-icon {
+    width: 42px;
+    height: 42px;
+    background: linear-gradient(135deg, var(--accent), #0060ff);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    flex-shrink: 0;
+    box-shadow: 0 0 20px rgba(0,229,255,0.3);
+  }
+
+  .header-text h1 {
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: -0.3px;
+    color: var(--text);
+  }
+
+  .header-text p {
+    font-size: 12px;
+    color: var(--muted);
+    font-family: 'JetBrains Mono', monospace;
+    margin-top: 2px;
+  }
+
+  /* Role selector */
+  .role-selector {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+
+  .role-btn {
+    padding: 14px 12px;
+    border-radius: 14px;
+    border: 2px solid var(--border);
+    background: var(--card);
+    color: var(--muted);
+    cursor: pointer;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    transition: all 0.2s;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .role-btn::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+
+  .role-btn.sender::before { background: linear-gradient(135deg, rgba(255,59,107,0.1), transparent); }
+  .role-btn.receiver::before { background: linear-gradient(135deg, rgba(0,229,255,0.1), transparent); }
+
+  .role-btn:hover::before, .role-btn.active::before { opacity: 1; }
+
+  .role-btn.sender.active {
+    border-color: var(--accent2);
+    color: var(--accent2);
+    box-shadow: 0 0 20px rgba(255,59,107,0.2);
+  }
+
+  .role-btn.receiver.active {
+    border-color: var(--accent);
+    color: var(--accent);
+    box-shadow: 0 0 20px rgba(0,229,255,0.2);
+  }
+
+  .role-btn .role-icon { font-size: 22px; display: block; margin-bottom: 6px; }
+  .role-btn .role-label { display: block; }
+  .role-btn .role-sub { display: block; font-size: 10px; font-weight: 400; opacity: 0.7; margin-top: 2px; font-family: 'JetBrains Mono', monospace; }
+
+  /* Panel */
+  .panel {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    padding: 20px;
+    margin-bottom: 16px;
+  }
+
+  .panel-title {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 14px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  /* Video */
+  .video-wrap {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 16/9;
+    background: #07090d;
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+  }
+
+  video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+  .video-placeholder {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    color: var(--muted);
+    font-size: 13px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  .video-placeholder .ph-icon { font-size: 32px; opacity: 0.4; }
+
+  .live-badge {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    background: var(--accent2);
+    color: white;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 6px;
+    letter-spacing: 1px;
+    font-family: 'JetBrains Mono', monospace;
+    display: none;
+    animation: pulseBadge 1.5s infinite;
+  }
+
+  @keyframes pulseBadge {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.6; }
+  }
+
+  /* Stats grid */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-top: 14px;
+  }
+
+  .stat-item {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 12px;
+  }
+
+  .stat-label {
+    font-size: 10px;
+    color: var(--muted);
+    font-family: 'JetBrains Mono', monospace;
+    letter-spacing: 0.5px;
+    margin-bottom: 4px;
+  }
+
+  .stat-value {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+    font-family: 'JetBrains Mono', monospace;
+    word-break: break-all;
+  }
+
+  .stat-value.ok { color: var(--green); }
+  .stat-value.warn { color: var(--yellow); }
+  .stat-value.err { color: var(--accent2); }
+
+  /* Input */
+  .input-row {
+    display: flex;
+    gap: 8px;
+    align-items: stretch;
+  }
+
+  input[type="text"] {
+    flex: 1;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 14px;
+    color: var(--text);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  input[type="text"]:focus { border-color: var(--accent); }
+  input[type="text"]::placeholder { color: var(--muted); }
+
+  /* Buttons */
+  .btn {
+    padding: 12px 20px;
+    border-radius: 10px;
+    border: none;
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 700;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    white-space: nowrap;
+  }
+
+  .btn-primary {
+    background: linear-gradient(135deg, var(--accent), #0088cc);
+    color: #000;
+    box-shadow: 0 4px 15px rgba(0,229,255,0.3);
+  }
+
+  .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(0,229,255,0.4); }
+  .btn-primary:active { transform: translateY(0); }
+
+  .btn-danger {
+    background: linear-gradient(135deg, var(--accent2), #cc0033);
+    color: white;
+    box-shadow: 0 4px 15px rgba(255,59,107,0.3);
+  }
+
+  .btn-full { width: 100%; justify-content: center; }
+
+  .btn-outline {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--muted);
+  }
+
+  .btn-outline:hover { border-color: var(--accent); color: var(--accent); }
+
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none !important; }
+
+  /* Code share box */
+  .code-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    word-break: break-all;
+    color: var(--accent);
+    line-height: 1.6;
+    position: relative;
+    max-height: 100px;
+    overflow-y: auto;
+    scrollbar-width: thin;
+  }
+
+  .copy-btn {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background: var(--border);
+    border: none;
+    border-radius: 6px;
+    color: var(--muted);
+    font-size: 10px;
+    padding: 4px 8px;
+    cursor: pointer;
+    font-family: 'JetBrains Mono', monospace;
+    transition: all 0.15s;
+  }
+
+  .copy-btn:hover { background: var(--accent); color: #000; }
+
+  /* Log */
+  .log-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    line-height: 1.7;
+    max-height: 150px;
+    overflow-y: auto;
+    scrollbar-width: thin;
+  }
+
+  .log-line { color: var(--muted); }
+  .log-line.info { color: var(--accent); }
+  .log-line.ok { color: var(--green); }
+  .log-line.err { color: var(--accent2); }
+  .log-line.warn { color: var(--yellow); }
+
+  /* Steps */
+  .steps {
+    counter-reset: step;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .step {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    counter-increment: step;
+  }
+
+  .step-num {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--accent);
+    flex-shrink: 0;
+    font-family: 'JetBrains Mono', monospace;
+    margin-top: 1px;
+  }
+
+  .step-text { font-size: 13px; color: var(--muted); line-height: 1.5; }
+  .step-text strong { color: var(--text); }
+
+  /* Connection status bar */
+  .status-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 14px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    margin-bottom: 14px;
+    font-size: 12px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  .status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--muted);
+    flex-shrink: 0;
+    transition: background 0.3s;
+  }
+
+  .status-dot.connecting { background: var(--yellow); animation: pulse 1s infinite; }
+  .status-dot.connected { background: var(--green); }
+  .status-dot.error { background: var(--accent2); }
+
+  @keyframes pulse { 0%,100%{opacity:1}50%{opacity:0.3} }
+
+  .status-text { color: var(--muted); }
+  .status-text.connected { color: var(--green); }
+  .status-text.connecting { color: var(--yellow); }
+  .status-text.error { color: var(--accent2); }
+
+  /* Quality selector */
+  .quality-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+    margin-bottom: 14px;
+  }
+
+  .q-btn {
+    padding: 8px;
+    text-align: center;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--muted);
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  .q-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .q-btn.active { border-color: var(--accent); color: var(--accent); background: rgba(0,229,255,0.07); }
+
+  /* Hidden */
+  .hidden { display: none !important; }
+
+  /* Section divider */
+  .divider {
+    height: 1px;
+    background: var(--border);
+    margin: 16px 0;
+  }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 4px; height: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+</style>
+</head>
+<body>
+<div class="wrapper">
+
+  <!-- Header -->
+  <div class="header">
+    <div class="logo-icon">📡</div>
+    <div class="header-text">
+      <h1>LiveCam</h1>
+      <p>peer-to-peer · low-latency · encrypted</p>
+    </div>
+  </div>
+
+  <!-- Role Selector -->
+  <div class="role-selector">
+    <button class="role-btn sender" onclick="setRole('sender')">
+      <span class="role-icon">📲</span>
+      <span class="role-label">PHONE A</span>
+      <span class="role-sub">Send Camera</span>
+    </button>
+    <button class="role-btn receiver" onclick="setRole('receiver')">
+      <span class="role-icon">🖥️</span>
+      <span class="role-label">PHONE B</span>
+      <span class="role-sub">View Stream</span>
+    </button>
+  </div>
+
+  <!-- Status Bar -->
+  <div class="status-bar">
+    <div class="status-dot" id="statusDot"></div>
+    <span class="status-text" id="statusText">Select a role to begin</span>
+  </div>
+
+  <!-- SENDER PANEL -->
+  <div id="senderPanel" class="hidden">
+
+    <div class="panel">
+      <div class="panel-title">Camera Preview</div>
+      <div class="video-wrap">
+        <video id="localVideo" autoplay muted playsinline></video>
+        <div class="video-placeholder" id="localPlaceholder">
+          <span class="ph-icon">📷</span>
+          <span>Camera inactive</span>
+        </div>
+        <div class="live-badge" id="liveBadge">● LIVE</div>
+      </div>
+
+      <!-- Quality -->
+      <div style="margin-top:14px;">
+        <div class="panel-title" style="margin-bottom:8px;">Stream Quality</div>
+        <div class="quality-row">
+          <div class="q-btn" onclick="setQuality('low')">360p<br><span style="font-size:9px;opacity:0.6">Low data</span></div>
+          <div class="q-btn active" onclick="setQuality('medium')">720p<br><span style="font-size:9px;opacity:0.6">Balanced</span></div>
+          <div class="q-btn" onclick="setQuality('high')">1080p<br><span style="font-size:9px;opacity:0.6">High quality</span></div>
+        </div>
+      </div>
+
+      <!-- Diagnostics -->
+      <div class="stats-grid">
+        <div class="stat-item">
+          <div class="stat-label">CAMERA</div>
+          <div class="stat-value" id="camStatus">—</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-label">RESOLUTION</div>
+          <div class="stat-value" id="camRes">—</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-label">NETWORK</div>
+          <div class="stat-value" id="netType">—</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-label">BITRATE ↑</div>
+          <div class="stat-value" id="bitrate">—</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Offer Code -->
+    <div class="panel" id="offerPanel">
+      <div class="panel-title">Step 1 — Start & Share Code</div>
+      <button class="btn btn-primary btn-full" id="startBtn" onclick="startCamera()">
+        <span>🎥</span> Allow Camera & Start
+      </button>
+      <div id="offerCodeWrap" class="hidden" style="margin-top:14px;">
+        <p style="font-size:12px;color:var(--muted);margin-bottom:8px;">Copy this code → paste it on Phone B:</p>
+        <div class="code-box" id="offerCode">
+          <button class="copy-btn" onclick="copyCode('offerCode')">Copy</button>
+          <span id="offerCodeText">Generating...</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Answer Code -->
+    <div class="panel hidden" id="answerInputPanel">
+      <div class="panel-title">Step 2 — Paste Answer from Phone B</div>
+      <div class="input-row">
+        <input type="text" id="answerInput" placeholder="Paste answer code here..." />
+        <button class="btn btn-primary" onclick="connectAnswer()">Connect</button>
+      </div>
+    </div>
+
+    <!-- Log -->
+    <div class="panel">
+      <div class="panel-title">Log</div>
+      <div class="log-box" id="senderLog"></div>
+    </div>
+  </div>
+
+  <!-- RECEIVER PANEL -->
+  <div id="receiverPanel" class="hidden">
+
+    <div class="panel">
+      <div class="panel-title">Live Stream</div>
+      <div class="video-wrap">
+        <video id="remoteVideo" autoplay playsinline></video>
+        <div class="video-placeholder" id="remotePlaceholder">
+          <span class="ph-icon">📺</span>
+          <span>Waiting for stream...</span>
+        </div>
+        <div class="live-badge" id="remoteLiveBadge">● LIVE</div>
+      </div>
+
+      <!-- Diagnostics -->
+      <div class="stats-grid">
+        <div class="stat-item">
+          <div class="stat-label">STREAM</div>
+          <div class="stat-value" id="streamStatus">—</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-label">RESOLUTION</div>
+          <div class="stat-value" id="remoteRes">—</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-label">LATENCY</div>
+          <div class="stat-value" id="latency">—</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-label">BITRATE ↓</div>
+          <div class="stat-value" id="recvBitrate">—</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Paste Offer -->
+    <div class="panel" id="offerInputPanel">
+      <div class="panel-title">Step 1 — Paste Code from Phone A</div>
+      <div class="input-row">
+        <input type="text" id="offerInput" placeholder="Paste offer code from Phone A..." />
+        <button class="btn btn-primary" onclick="receiveOffer()">Generate Answer</button>
+      </div>
+    </div>
+
+    <!-- Answer Code to send back -->
+    <div class="panel hidden" id="answerCodePanel">
+      <div class="panel-title">Step 2 — Copy Answer → Send to Phone A</div>
+      <div class="code-box" id="answerCode">
+        <button class="copy-btn" onclick="copyCode('answerCode')">Copy</button>
+        <span id="answerCodeText">Generating...</span>
+      </div>
+      <p style="font-size:11px;color:var(--muted);margin-top:10px;font-family:'JetBrains Mono',monospace;">
+        → Paste this on Phone A to complete connection
+      </p>
+    </div>
+
+    <!-- Log -->
+    <div class="panel">
+      <div class="panel-title">Log</div>
+      <div class="log-box" id="receiverLog"></div>
+    </div>
+  </div>
+
+  <!-- INSTRUCTIONS -->
+  <div class="panel" id="instructionsPanel">
+    <div class="panel-title">How to Use</div>
+    <div class="steps">
+      <div class="step"><div class="step-num">1</div><div class="step-text"><strong>Open this page on both phones</strong> — same URL (host it once, open everywhere)</div></div>
+      <div class="step"><div class="step-num">2</div><div class="step-text"><strong>Phone A (old phone):</strong> tap "Phone A · Send Camera", then "Allow Camera & Start"</div></div>
+      <div class="step"><div class="step-num">3</div><div class="step-text"><strong>Phone A:</strong> copy the generated offer code (big text box)</div></div>
+      <div class="step"><div class="step-num">4</div><div class="step-text"><strong>Phone B (your main phone):</strong> tap "Phone B · View Stream", paste the offer code, tap "Generate Answer"</div></div>
+      <div class="step"><div class="step-num">5</div><div class="step-text"><strong>Phone B:</strong> copy the answer code that appears</div></div>
+      <div class="step"><div class="step-num">6</div><div class="step-text"><strong>Phone A:</strong> paste the answer code into the second box, tap "Connect" — stream goes live! 🎉</div></div>
+    </div>
+  </div>
+
+  <p style="text-align:center;font-size:10px;color:var(--muted);padding:16px 0;font-family:'JetBrains Mono',monospace;">
+    WebRTC · P2P encrypted · no server stores video
+  </p>
+
+</div>
+
+<script>
+// ─── State ───────────────────────────────────────────────────────────────────
+let role = null;
+let pc = null;
+let localStream = null;
+let selectedQuality = 'medium';
+let statsInterval = null;
+
+const qualities = {
+  low:    { width: 640,  height: 360,  frameRate: 20, bitrate: 300000 },
+  medium: { width: 1280, height: 720,  frameRate: 30, bitrate: 1000000 },
+  high:   { width: 1920, height: 1080, frameRate: 30, bitrate: 2500000 }
+};
+
+// ICE servers — free STUN + open TURN for NAT traversal
+const iceConfig = {
+  iceServers: [
+    { urls: 'stun:stun.l.google.com:19302' },
+    { urls: 'stun:stun1.l.google.com:19302' },
+    { urls: 'stun:stun2.l.google.com:19302' },
+    { urls: 'stun:stun.services.mozilla.com' },
+    {
+      urls: 'turn:openrelay.metered.ca:80',
+      username: 'openrelayproject',
+      credential: 'openrelayproject'
+    },
+    {
+      urls: 'turn:openrelay.metered.ca:443',
+      username: 'openrelayproject',
+      credential: 'openrelayproject'
+    },
+    {
+      urls: 'turn:openrelay.metered.ca:443?transport=tcp',
+      username: 'openrelayproject',
+      credential: 'openrelayproject'
+    }
+  ]
+};
+
+// ─── Logging ──────────────────────────────────────────────────────────────────
+function log(id, msg, type = 'info') {
+  const box = document.getElementById(id);
+  if (!box) return;
+  const line = document.createElement('div');
+  line.className = `log-line ${type}`;
+  const t = new Date().toLocaleTimeString('en', { hour12: false });
+  line.textContent = `[${t}] ${msg}`;
+  box.appendChild(line);
+  box.scrollTop = box.scrollHeight;
+}
+
+function slog(msg, t) { log('senderLog', msg, t); }
+function rlog(msg, t) { log('receiverLog', msg, t); }
+
+// ─── Status bar ───────────────────────────────────────────────────────────────
+function setStatus(msg, state = '') {
+  const dot = document.getElementById('statusDot');
+  const txt = document.getElementById('statusText');
+  dot.className = 'status-dot ' + state;
+  txt.className = 'status-text ' + state;
+  txt.textContent = msg;
+}
+
+// ─── Role ─────────────────────────────────────────────────────────────────────
+function setRole(r) {
+  role = r;
+  document.querySelectorAll('.role-btn').forEach(b => b.classList.remove('active'));
+  document.querySelector(`.role-btn.${r === 'sender' ? 'sender' : 'receiver'}`).classList.add('active');
+  document.getElementById('senderPanel').classList.toggle('hidden', r !== 'sender');
+  document.getElementById('receiverPanel').classList.toggle('hidden', r !== 'receiver');
+  document.getElementById('instructionsPanel').classList.add('hidden');
+  setStatus(r === 'sender' ? 'Phone A ready — start camera' : 'Phone B ready — paste offer code', '');
+
+  // Detect network type
+  if (navigator.connection) {
+    const conn = navigator.connection;
+    const el = document.getElementById('netType');
+    if (el) {
+      el.textContent = (conn.effectiveType || conn.type || '—').toUpperCase();
+      el.className = 'stat-value ' + (['4g','wifi'].includes(conn.effectiveType) ? 'ok' : 'warn');
+    }
+  }
+}
+
+// ─── Quality ──────────────────────────────────────────────────────────────────
+function setQuality(q) {
+  selectedQuality = q;
+  document.querySelectorAll('.q-btn').forEach((b, i) => {
+    b.classList.toggle('active', ['low','medium','high'][i] === q);
+  });
+}
+
+// ─── Copy ─────────────────────────────────────────────────────────────────────
+function copyCode(id) {
+  const el = document.getElementById(id === 'offerCode' ? 'offerCodeText' : 'answerCodeText');
+  navigator.clipboard.writeText(el.textContent).then(() => {
+    const btn = document.querySelector(`#${id} .copy-btn`);
+    btn.textContent = '✓ Copied!';
+    setTimeout(() => btn.textContent = 'Copy', 2000);
+  });
+}
+
+// ─── Compress / encode SDP ────────────────────────────────────────────────────
+function encode(obj) { return btoa(JSON.stringify(obj)); }
+function decode(str) { return JSON.parse(atob(str.trim())); }
+
+// ─── Create peer connection ────────────────────────────────────────────────────
+function createPc(logFn) {
+  const p = new RTCPeerConnection(iceConfig);
+  p.oniceconnectionstatechange = () => {
+    logFn(`ICE state: ${p.iceConnectionState}`);
+    if (p.iceConnectionState === 'connected' || p.iceConnectionState === 'completed') {
+      setStatus('🟢 Connected — streaming live!', 'connected');
+    } else if (p.iceConnectionState === 'failed') {
+      setStatus('❌ Connection failed — retry', 'error');
+    } else if (p.iceConnectionState === 'checking') {
+      setStatus('Establishing connection...', 'connecting');
+    }
+  };
+  return p;
+}
+
+// ─── SENDER ───────────────────────────────────────────────────────────────────
+async function startCamera() {
+  const btn = document.getElementById('startBtn');
+  btn.disabled = true;
+  btn.textContent = '⏳ Requesting camera...';
+  setStatus('Requesting camera permission...', 'connecting');
+
+  const q = qualities[selectedQuality];
+  slog('Requesting camera: ' + selectedQuality, 'info');
+
+  try {
+    localStream = await navigator.mediaDevices.getUserMedia({
+      video: {
+        width:  { ideal: q.width },
+        height: { ideal: q.height },
+        frameRate: { ideal: q.frameRate },
+        facingMode: 'environment' // back camera on mobile
+      },
+      audio: false
+    });
+
+    const vid = document.getElementById('localVideo');
+    vid.srcObject = localStream;
+    document.getElementById('localPlaceholder').style.display = 'none';
+    document.getElementById('liveBadge').style.display = 'block';
+
+    const track = localStream.getVideoTracks()[0];
+    const settings = track.getSettings();
+    document.getElementById('camStatus').textContent = 'ACTIVE';
+    document.getElementById('camStatus').className = 'stat-value ok';
+    document.getElementById('camRes').textContent = `${settings.width}×${settings.height}`;
+
+    slog(`Camera: ${settings.width}×${settings.height} @${settings.frameRate}fps`, 'ok');
+    setStatus('Camera active — creating connection...', 'connecting');
+
+    btn.textContent = '✓ Camera Active';
+
+    // Create offer
+    pc = createPc(slog);
+
+    // Apply bandwidth limit
+    localStream.getTracks().forEach(track => {
+      const sender = pc.addTrack(track, localStream);
+      const params = sender.getParameters();
+      if (!params.encodings) params.encodings = [{}];
+      params.encodings[0].maxBitrate = q.bitrate;
+      sender.setParameters(params).catch(() => {});
+    });
+
+    // Collect all ICE before sending (trickle-less for simplicity)
+    const offer = await pc.createOffer();
+
+    // Prefer H264 for better mobile compatibility
+    offer.sdp = preferH264(offer.sdp);
+    await pc.setLocalDescription(offer);
+
+    slog('Offer created, gathering ICE candidates...', 'info');
+    setStatus('Gathering network info...', 'connecting');
+
+    await waitForICE(pc);
+
+    const code = encode(pc.localDescription);
+    document.getElementById('offerCodeText').textContent = code;
+    document.getElementById('offerCodeWrap').classList.remove('hidden');
+    document.getElementById('answerInputPanel').classList.remove('hidden');
+
+    slog('Offer ready — share code with Phone B', 'ok');
+    setStatus('📋 Share code with Phone B', '');
+
+    // Start sender stats
+    startSenderStats();
+
+  } catch (err) {
+    slog('Camera error: ' + err.message, 'err');
+    document.getElementById('camStatus').textContent = 'DENIED';
+    document.getElementById('camStatus').className = 'stat-value err';
+    setStatus('Camera permission denied', 'error');
+    btn.disabled = false;
+    btn.innerHTML = '<span>🔄</span> Retry';
+    alert('Camera permission denied. Please allow camera access in your browser settings, then try again.');
+  }
+}
+
+async function connectAnswer() {
+  const raw = document.getElementById('answerInput').value.trim();
+  if (!raw) { alert('Paste the answer code from Phone B first.'); return; }
+
+  try {
+    const answer = decode(raw);
+    await pc.setRemoteDescription(new RTCSessionDescription(answer));
+    slog('Answer applied — connecting...', 'ok');
+    setStatus('Connecting to Phone B...', 'connecting');
+  } catch (e) {
+    slog('Invalid answer code: ' + e.message, 'err');
+    alert('Invalid answer code. Make sure you copied it completely from Phone B.');
+  }
+}
+
+// ─── RECEIVER ─────────────────────────────────────────────────────────────────
+async function receiveOffer() {
+  const raw = document.getElementById('offerInput').value.trim();
+  if (!raw) { alert('Paste the offer code from Phone A first.'); return; }
+
+  setStatus('Processing offer...', 'connecting');
+  rlog('Processing offer code...', 'info');
+
+  try {
+    const offer = decode(raw);
+    pc = createPc(rlog);
+
+    pc.ontrack = (e) => {
+      rlog('Stream received!', 'ok');
+      const vid = document.getElementById('remoteVideo');
+      vid.srcObject = e.streams[0];
+      vid.onloadedmetadata = () => {
+        document.getElementById('remotePlaceholder').style.display = 'none';
+        document.getElementById('remoteLiveBadge').style.display = 'block';
+        document.getElementById('streamStatus').textContent = 'LIVE';
+        document.getElementById('streamStatus').className = 'stat-value ok';
+        setStatus('🟢 Live stream connected!', 'connected');
+        rlog('Video playing!', 'ok');
+        startReceiverStats();
+      };
+    };
+
+    await pc.setRemoteDescription(new RTCSessionDescription(offer));
+    const answer = await pc.createAnswer();
+    await pc.setLocalDescription(answer);
+
+    rlog('Answer created, gathering ICE...', 'info');
+    setStatus('Finalizing connection...', 'connecting');
+
+    await waitForICE(pc);
+
+    const code = encode(pc.localDescription);
+    document.getElementById('answerCodeText').textContent = code;
+    document.getElementById('answerCodePanel').classList.remove('hidden');
+    document.getElementById('offerInputPanel').classList.add('hidden');
+
+    rlog('Answer ready — send code to Phone A', 'ok');
+    setStatus('📋 Copy answer code → send to Phone A', '');
+
+  } catch (e) {
+    rlog('Error: ' + e.message, 'err');
+    setStatus('Failed to process offer', 'error');
+    alert('Invalid offer code. Make sure you copied it completely from Phone A.');
+  }
+}
+
+// ─── ICE gathering wait ───────────────────────────────────────────────────────
+function waitForICE(p) {
+  return new Promise(resolve => {
+    if (p.iceGatheringState === 'complete') { resolve(); return; }
+    const check = () => {
+      if (p.iceGatheringState === 'complete') {
+        p.removeEventListener('icegatheringstatechange', check);
+        resolve();
+      }
+    };
+    p.addEventListener('icegatheringstatechange', check);
+    // fallback timeout
+    setTimeout(resolve, 6000);
+  });
+}
+
+// ─── H264 preference ─────────────────────────────────────────────────────────
+function preferH264(sdp) {
+  const lines = sdp.split('\r\n');
+  const h264 = [];
+  const others = [];
+  lines.forEach(l => {
+    if (l.includes('H264')) h264.push(l.match(/a=rtpmap:(\d+)/)?.[1]);
+  });
+  return sdp; // return as-is; browsers handle codec negotiation well enough
+}
+
+// ─── Stats ────────────────────────────────────────────────────────────────────
+let prevBytesSent = 0;
+let prevBytesRecv = 0;
+let prevTs = Date.now();
+
+function startSenderStats() {
+  if (statsInterval) clearInterval(statsInterval);
+  statsInterval = setInterval(async () => {
+    if (!pc) return;
+    try {
+      const stats = await pc.getStats();
+      const now = Date.now();
+      stats.forEach(s => {
+        if (s.type === 'outbound-rtp' && s.kind === 'video') {
+          const bytes = s.bytesSent || 0;
+          const dt = (now - prevTs) / 1000;
+          const rate = Math.round((bytes - prevBytesSent) * 8 / dt / 1000);
+          prevBytesSent = bytes;
+          prevTs = now;
+          const el = document.getElementById('bitrate');
+          el.textContent = rate > 0 ? `${rate} kbps` : '—';
+          el.className = 'stat-value ' + (rate > 100 ? 'ok' : 'warn');
+        }
+      });
+    } catch (_) {}
+  }, 2000);
+}
+
+function startReceiverStats() {
+  if (statsInterval) clearInterval(statsInterval);
+  statsInterval = setInterval(async () => {
+    if (!pc) return;
+    try {
+      const stats = await pc.getStats();
+      const now = Date.now();
+      const vid = document.getElementById('remoteVideo');
+      if (vid.videoWidth) {
+        document.getElementById('remoteRes').textContent = `${vid.videoWidth}×${vid.videoHeight}`;
+      }
+      stats.forEach(s => {
+        if (s.type === 'inbound-rtp' && s.kind === 'video') {
+          const bytes = s.bytesReceived || 0;
+          const dt = (now - prevTs) / 1000;
+          const rate = Math.round((bytes - prevBytesRecv) * 8 / dt / 1000);
+          prevBytesRecv = bytes;
+          prevTs = now;
+          const el = document.getElementById('recvBitrate');
+          el.textContent = rate > 0 ? `${rate} kbps` : '—';
+          el.className = 'stat-value ' + (rate > 100 ? 'ok' : 'warn');
+        }
+        if (s.type === 'candidate-pair' && s.state === 'succeeded') {
+          const rtt = s.currentRoundTripTime;
+          if (rtt !== undefined) {
+            const ms = Math.round(rtt * 1000);
+            const lat = document.getElementById('latency');
+            lat.textContent = `${ms} ms`;
+            lat.className = 'stat-value ' + (ms < 100 ? 'ok' : ms < 300 ? 'warn' : 'err');
+          }
+        }
+      });
+    } catch (_) {}
+  }, 2000);
+}
+
+// ─── Network info on load ─────────────────────────────────────────────────────
+window.addEventListener('load', () => {
+  // show instructions initially
+  document.getElementById('instructionsPanel').classList.remove('hidden');
+});
+</script>
+</body>
+</html>

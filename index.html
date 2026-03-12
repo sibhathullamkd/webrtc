@@ -5,197 +5,215 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <title>Dpwed WebRTC cam</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@400;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
 :root{
-  --bg:#06090d;--panel:#0b1016;--bdr:#162616;
-  --g:#00ff88;--gd:#008844;--r:#ff3355;--y:#ffcc00;
-  --tx:#c0e0c0;--dim:#3a5a3a;
-  --M:'Share Tech Mono',monospace;--U:'Rajdhani',sans-serif;
+  --bg:#0a0d14;--surface:#111520;--card:#161b27;--border:#232b3e;--border2:#2d3855;
+  --accent:#6c63ff;--accent2:#a78bfa;--cyan:#22d3ee;--green:#10b981;
+  --red:#f43f5e;--yellow:#fbbf24;--tx:#e2e8f0;--tx2:#94a3b8;--tx3:#475569;
+  --mono:'JetBrains Mono',monospace;--sans:'Inter',sans-serif;--r:10px;--r2:6px;
 }
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-body{background:var(--bg);color:var(--tx);font-family:var(--M);min-height:100vh;overflow-x:hidden;padding-bottom:34px}
-body::before{content:'';position:fixed;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,255,136,.009) 2px,rgba(0,255,136,.009) 4px);pointer-events:none;z-index:9000}
-
+body{background:var(--bg);color:var(--tx);font-family:var(--sans);min-height:100vh;overflow-x:hidden;padding-bottom:44px}
+::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:var(--bg)}::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
 
 /* HEADER */
-header{border-bottom:1px solid var(--bdr);padding:8px 14px;display:flex;align-items:center;justify-content:space-between;background:rgba(6,9,13,.98);position:sticky;top:0;z-index:100}
-.brand{font-family:var(--U);font-size:1.05rem;font-weight:700;color:var(--g);letter-spacing:2px;line-height:1.3}
-.brand small{color:var(--dim);font-size:.56rem;letter-spacing:1px;display:block;font-weight:400}
-.hst{display:flex;gap:10px;align-items:center;font-size:.6rem;color:var(--dim)}
-.rl{width:6px;height:6px;border-radius:50%;background:var(--r);display:inline-block}
-.bk{animation:bk 1s infinite}@keyframes bk{0%,100%{opacity:1}50%{opacity:.1}}
+header{background:rgba(10,13,20,.96);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);padding:0 18px;height:58px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+.brand{display:flex;align-items:center;gap:10px}
+.brand-icon{width:34px;height:34px;border-radius:9px;background:linear-gradient(135deg,var(--accent),var(--cyan));display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0}
+.brand-name{font-size:.95rem;font-weight:700;color:var(--tx);letter-spacing:-.3px}
+.brand-name span{color:var(--accent2)}
+.brand-sub{font-size:.58rem;color:var(--tx3);font-weight:400;letter-spacing:.5px;text-transform:uppercase;margin-top:1px}
+.hstat{display:flex;gap:7px;align-items:center}
+.hbadge{display:flex;align-items:center;gap:5px;background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:4px 10px;font-size:.62rem;color:var(--tx2);font-family:var(--mono)}
+.pulse{width:6px;height:6px;border-radius:50%;background:var(--red);animation:pulse 1.5s infinite;flex-shrink:0}
+.pulse.on{background:var(--green)}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.3;transform:scale(.75)}}
 
 /* TABS */
-.tabs{display:flex;border-bottom:1px solid var(--bdr)}
-.tab{flex:1;padding:11px 2px;text-align:center;font-family:var(--U);font-size:.75rem;font-weight:600;letter-spacing:2px;text-transform:uppercase;cursor:pointer;border:none;background:var(--panel);color:var(--dim);border-right:1px solid var(--bdr);transition:.2s}
-.tab:last-child{border-right:none}
-.tab.on{background:var(--bg);color:var(--g);border-bottom:2px solid var(--g)}
-.pg{display:none;padding:12px}.pg.on{display:block}
+.tabs{display:flex;gap:3px;background:var(--surface);border-bottom:1px solid var(--border);padding:8px 16px 0}
+.tab{flex:1;max-width:160px;padding:9px 12px 11px;font-family:var(--sans);font-size:.76rem;font-weight:600;color:var(--tx3);cursor:pointer;border:none;background:transparent;border-radius:var(--r2) var(--r2) 0 0;transition:all .2s;border-bottom:2px solid transparent;display:flex;align-items:center;justify-content:center;gap:5px}
+.tab:hover{color:var(--tx2);background:rgba(255,255,255,.04)}
+.tab.on{color:var(--accent2);border-bottom-color:var(--accent);background:rgba(108,99,255,.08)}
+.pg{display:none;padding:18px}.pg.on{display:block}
+
+/* RECEIVER */
+.rx-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}
+.rx-hdr h2{font-size:1.05rem;font-weight:700;color:var(--tx)}
+.rx-hdr p{font-size:.72rem;color:var(--tx3);margin-top:2px}
+.rx-hdr p b{color:var(--accent2);font-weight:600}
+.restart-btn{display:flex;align-items:center;gap:6px;padding:8px 15px;border-radius:var(--r2);background:var(--surface);border:1px solid var(--border2);color:var(--tx2);font-family:var(--sans);font-size:.76rem;font-weight:600;cursor:pointer;transition:all .2s}
+.restart-btn:hover{background:var(--card);border-color:var(--accent);color:var(--accent2)}
+#GR{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:13px}
+@media(max-width:420px){#GR{grid-template-columns:1fr}}
+
+/* EMPTY */
+.empty{grid-column:1/-1;text-align:center;padding:60px 20px;color:var(--tx3)}
+.empty-ico{font-size:3rem;opacity:.25;display:block;margin-bottom:16px}
+.empty h3{font-size:.95rem;font-weight:600;color:var(--tx2);margin-bottom:8px}
+.empty p{font-size:.76rem;line-height:1.9}
+.empty strong{color:var(--accent2)}
+
+/* CAMERA CARD */
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;position:relative;transition:border-color .2s,box-shadow .2s}
+.card:hover{border-color:var(--border2);box-shadow:0 8px 30px rgba(0,0,0,.4)}
+.card.is-live{border-color:rgba(108,99,255,.4)}
+.card video{width:100%;aspect-ratio:16/9;display:block;object-fit:cover;background:#000}
+.cov{position:absolute;inset:0;pointer-events:none;display:flex;flex-direction:column;justify-content:space-between;padding:10px;background:linear-gradient(to bottom,rgba(0,0,0,.55) 0%,transparent 35%,transparent 62%,rgba(0,0,0,.68) 100%)}
+.c-top{display:flex;justify-content:space-between;align-items:flex-start}
+.c-lbl{background:rgba(108,99,255,.88);backdrop-filter:blur(6px);color:#fff;font-size:.56rem;font-weight:700;padding:3px 8px;border-radius:4px;letter-spacing:.8px;text-transform:uppercase;max-width:55%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.c-st{font-size:.54rem;font-weight:700;padding:3px 8px;border-radius:4px;letter-spacing:.6px;text-transform:uppercase}
+.c-st.live{background:rgba(16,185,129,.9);color:#fff}
+.c-st.wait{background:rgba(251,191,36,.9);color:#000}
+.c-st.off{background:rgba(71,85,105,.8);color:var(--tx2)}
+.c-bot{display:flex;align-items:center;gap:5px;pointer-events:all}
+.c-id{font-family:var(--mono);font-size:.48rem;color:rgba(255,255,255,.3);margin-right:auto}
+.ibt{width:30px;height:30px;border-radius:6px;background:rgba(255,255,255,.1);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.14);color:#fff;font-size:.78rem;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .2s;flex-shrink:0}
+.ibt:hover{background:rgba(108,99,255,.5);border-color:var(--accent)}
+.ibt.mut{background:rgba(244,63,94,.18);border-color:rgba(244,63,94,.45);color:var(--red)}
+.fbt{padding:5px 9px;border-radius:6px;background:rgba(255,255,255,.1);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.14);color:#fff;font-size:.6rem;font-weight:600;cursor:pointer;transition:all .2s;font-family:var(--sans);display:flex;align-items:center;gap:3px}
+.fbt:hover{background:rgba(108,99,255,.5);border-color:var(--accent)}
 
 /* SENDER */
-.sw{display:grid;grid-template-columns:1fr 275px;gap:14px;max-width:1020px;margin:0 auto}
-@media(max-width:680px){.sw{grid-template-columns:1fr}}
-.cb{background:#000;border:1px solid var(--bdr);border-radius:4px;overflow:hidden;position:relative;aspect-ratio:16/9}
+.s-grid{display:grid;grid-template-columns:1fr 295px;gap:18px;max-width:1040px;margin:0 auto}
+@media(max-width:680px){.s-grid{grid-template-columns:1fr}}
+.prev-box{background:#000;border:1px solid var(--border);border-radius:var(--r);overflow:hidden;position:relative;aspect-ratio:16/9}
 #LV{width:100%;height:100%;object-fit:cover;display:block}
-.ch{position:absolute;top:0;left:0;right:0;padding:7px 10px;background:linear-gradient(to bottom,rgba(0,0,0,.75),transparent);display:flex;justify-content:space-between;pointer-events:none}
-.cl{font-size:.62rem;color:var(--g);letter-spacing:2px}
-.cx{display:flex;align-items:center;gap:4px;font-size:.58rem;color:var(--r);letter-spacing:2px}
-.csw{display:flex;gap:6px;margin-top:8px}
-.cs{flex:1;padding:8px 2px;border:1px solid var(--bdr);background:var(--bg);color:var(--dim);font-family:var(--U);font-size:.68rem;font-weight:600;letter-spacing:1px;cursor:pointer;border-radius:4px;transition:.2s}
-.cs.on{border-color:var(--g);color:var(--g);background:rgba(0,255,136,.04)}
-.dg{background:var(--panel);border:1px solid var(--bdr);border-radius:4px;padding:12px;display:flex;flex-direction:column;gap:7px}
-.dt{font-family:var(--U);font-size:.66rem;font-weight:700;letter-spacing:3px;color:var(--gd);text-transform:uppercase;border-bottom:1px solid var(--bdr);padding-bottom:6px;margin-bottom:1px}
-.dr{display:flex;justify-content:space-between;font-size:.62rem;gap:6px}
-.dk{color:var(--dim);flex-shrink:0;font-size:.6rem}
-.dv{color:var(--tx);text-align:right;word-break:break-all;font-size:.62rem}
-.dv.ok{color:var(--g)}.dv.w{color:var(--y)}.dv.e{color:var(--r)}
-.btn{width:100%;padding:11px;border:none;cursor:pointer;font-family:var(--U);font-size:.82rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;border-radius:4px;transition:.2s;margin-top:2px}
-.gbtn{background:var(--g);color:#000}.gbtn:hover{box-shadow:0 0 14px rgba(0,255,136,.35)}
-.gbtn:disabled{background:var(--gd);color:#001a08;cursor:not-allowed;box-shadow:none}
-.rbtn{background:var(--r);color:#fff}
+.prev-hud{position:absolute;top:0;left:0;right:0;padding:11px 13px;background:linear-gradient(to bottom,rgba(0,0,0,.68),transparent);display:flex;justify-content:space-between;align-items:center;pointer-events:none}
+.prev-lbl{font-size:.62rem;font-weight:600;color:rgba(255,255,255,.75);letter-spacing:.8px}
+.prev-st{display:flex;align-items:center;gap:5px;background:rgba(0,0,0,.45);backdrop-filter:blur(6px);border-radius:20px;padding:3px 10px;font-size:.58rem;color:rgba(255,255,255,.65);font-weight:600}
+.cam-sw{display:flex;gap:7px;margin-top:11px}
+.sw-btn{flex:1;padding:9px 4px;border-radius:var(--r2);background:var(--surface);border:1px solid var(--border);color:var(--tx3);font-family:var(--sans);font-size:.75rem;font-weight:600;cursor:pointer;transition:all .2s;text-align:center}
+.sw-btn:hover{border-color:var(--border2);color:var(--tx2)}
+.sw-btn.on{background:rgba(108,99,255,.12);border-color:var(--accent);color:var(--accent2)}
 
-/* RECEIVER GRID */
-.rh{display:flex;justify-content:space-between;align-items:center;margin-bottom:11px}
-.ccnt{font-size:.66rem;color:var(--dim)}.ccnt b{color:var(--g);font-size:.95rem}
-.smb{padding:7px 13px;border:none;cursor:pointer;border-radius:4px;font-family:var(--U);font-size:.68rem;font-weight:700;letter-spacing:1px;background:var(--g);color:#000}
-#GR{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:11px}
-@media(max-width:400px){#GR{grid-template-columns:1fr}}
-.card{background:#000;border:1px solid var(--bdr);border-radius:5px;overflow:hidden;position:relative;transition:border-color .2s}
-.card:hover{border-color:var(--gd)}
-.card video{width:100%;aspect-ratio:16/9;display:block;object-fit:cover;background:#000}
-.cov{position:absolute;inset:0;pointer-events:none;display:flex;flex-direction:column;justify-content:space-between;padding:7px}
-.ct{display:flex;justify-content:space-between;align-items:flex-start}
-.cnm{background:rgba(0,0,0,.82);padding:2px 7px;border-radius:3px;font-size:.58rem;color:var(--g);letter-spacing:2px;max-width:55%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.cst{font-size:.54rem;padding:2px 6px;border-radius:3px;letter-spacing:1px;font-family:var(--U);font-weight:700}
-.cst.live{background:rgba(255,51,85,.88);color:#fff}
-.cst.wait{background:rgba(255,204,0,.88);color:#000}
-.cst.off{background:rgba(0,0,0,.82);color:var(--dim)}
-.cbot{display:flex;justify-content:flex-end;align-items:center;gap:5px;pointer-events:all}
-.ibt{background:rgba(0,0,0,.82);border:1px solid rgba(0,255,136,.28);color:var(--g);font-size:.8rem;width:28px;height:28px;display:flex;align-items:center;justify-content:center;cursor:pointer;border-radius:4px;transition:.2s;flex-shrink:0}
-.ibt:hover{background:rgba(0,255,136,.12)}.ibt.mut{border-color:rgba(255,51,85,.5);color:var(--r)}
-.fbt{background:rgba(0,0,0,.82);border:1px solid rgba(0,255,136,.28);color:var(--g);font-size:.58rem;padding:4px 7px;cursor:pointer;border-radius:4px;font-family:var(--M);transition:.2s}
-.fbt:hover{background:rgba(0,255,136,.12)}
-.cmi{font-size:.5rem;color:rgba(200,230,200,.4);margin-right:auto}
-
-.empty{grid-column:1/-1;text-align:center;padding:44px 14px;color:var(--dim);font-size:.72rem;letter-spacing:2px;line-height:2.6}
-.ei{font-size:2.2rem;opacity:.18;display:block;margin-bottom:8px}
+/* DIAG */
+.diag{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:16px;display:flex;flex-direction:column;gap:9px}
+.diag-ttl{font-size:.68rem;font-weight:700;color:var(--tx2);text-transform:uppercase;letter-spacing:1px;border-bottom:1px solid var(--border);padding-bottom:9px;margin-bottom:1px}
+.d-row{display:flex;justify-content:space-between;align-items:center;gap:6px}
+.d-k{font-size:.62rem;color:var(--tx3);font-weight:500;flex-shrink:0}
+.d-v{font-size:.62rem;font-family:var(--mono);color:var(--tx2);text-align:right;word-break:break-all}
+.d-v.ok{color:var(--green)}.d-v.w{color:var(--yellow)}.d-v.e{color:var(--red)}
+hr.dv{border:none;border-top:1px solid var(--border);margin:1px 0}
+.start-btn{width:100%;padding:13px;border:none;border-radius:var(--r2);background:linear-gradient(135deg,var(--accent),#8b5cf6);color:#fff;font-family:var(--sans);font-size:.86rem;font-weight:700;cursor:pointer;transition:all .25s;box-shadow:0 4px 18px rgba(108,99,255,.35);letter-spacing:.2px}
+.start-btn:hover{transform:translateY(-1px);box-shadow:0 6px 26px rgba(108,99,255,.5)}
+.start-btn:disabled{background:var(--card);color:var(--tx3);box-shadow:none;transform:none;cursor:not-allowed}
+.stop-btn{width:100%;padding:11px;border:1px solid rgba(244,63,94,.4);border-radius:var(--r2);background:rgba(244,63,94,.1);color:var(--red);font-family:var(--sans);font-size:.83rem;font-weight:700;cursor:pointer;transition:all .2s;margin-top:7px}
+.stop-btn:hover{background:rgba(244,63,94,.22)}
 
 /* STATUS BAR */
-#SB{position:fixed;bottom:0;left:0;right:0;background:var(--panel);border-top:1px solid var(--bdr);padding:4px 12px;display:flex;gap:13px;font-size:.56rem;color:var(--dim);z-index:500;flex-wrap:wrap}
+#SB{position:fixed;bottom:0;left:0;right:0;background:rgba(10,13,20,.96);backdrop-filter:blur(16px);border-top:1px solid var(--border);padding:6px 16px;display:flex;gap:14px;align-items:center;font-size:.58rem;color:var(--tx3);z-index:500;flex-wrap:wrap}
 #SB>span{display:flex;align-items:center;gap:4px}
-.dot{width:5px;height:5px;border-radius:50%;background:var(--dim)}
-.dot.g{background:var(--g);box-shadow:0 0 4px var(--g)}.dot.r{background:var(--r)}.dot.y{background:var(--y)}
+.sd{width:5px;height:5px;border-radius:50%;background:var(--tx3)}
+.sd.g{background:var(--green);box-shadow:0 0 5px var(--green)}.sd.r{background:var(--red)}.sd.y{background:var(--yellow)}
 
 /* TOAST */
-#TS{position:fixed;top:60px;right:11px;z-index:8000;display:flex;flex-direction:column;gap:5px;pointer-events:none;max-width:230px}
-.tm{background:var(--panel);border:1px solid var(--gd);padding:7px 11px;border-radius:4px;font-size:.64rem;color:var(--tx);animation:ti .22s ease,to .35s ease 3.7s forwards;word-break:break-word}
-.tm.e{border-color:var(--r)}
-@keyframes ti{from{transform:translateX(22px);opacity:0}to{transform:none;opacity:1}}
-@keyframes to{to{opacity:0;transform:translateX(16px)}}
+#TOAST{position:fixed;top:66px;right:13px;z-index:9000;display:flex;flex-direction:column;gap:6px;pointer-events:none;max-width:250px}
+.ti{background:var(--card);border:1px solid var(--border2);backdrop-filter:blur(16px);padding:10px 13px;border-radius:var(--r2);font-size:.7rem;color:var(--tx);line-height:1.4;animation:tIn .2s ease,tOut .3s ease 3.8s forwards;box-shadow:0 4px 20px rgba(0,0,0,.4)}
+.ti.err{border-color:rgba(244,63,94,.45);color:var(--red)}
+.ti.ok{border-color:rgba(16,185,129,.35)}
+@keyframes tIn{from{transform:translateX(18px);opacity:0}to{transform:none;opacity:1}}
+@keyframes tOut{to{transform:translateX(14px);opacity:0}}
 
 /* SETUP */
-.su{max-width:700px;margin:0 auto}
-.sc{background:var(--panel);border:1px solid var(--bdr);border-radius:5px;padding:15px;margin-bottom:11px}
-.sc h3{font-family:var(--U);font-weight:700;letter-spacing:3px;color:var(--g);font-size:.82rem;margin-bottom:11px;text-transform:uppercase}
-.sp{display:flex;gap:10px;margin-bottom:10px;align-items:flex-start}
-.sn{min-width:23px;height:23px;border-radius:50%;border:2px solid var(--gd);display:flex;align-items:center;justify-content:center;font-size:.65rem;color:var(--g);font-family:var(--U);font-weight:700;flex-shrink:0}
-.st{font-size:.7rem;color:var(--tx);line-height:1.8}.st strong{color:var(--g)}
-.st code{background:rgba(0,255,136,.09);color:var(--g);padding:1px 4px;border-radius:3px;font-size:.85em;white-space:pre-wrap;word-break:break-all}
-.wb{background:rgba(255,204,0,.07);border:1px solid rgba(255,204,0,.26);border-radius:4px;padding:11px;font-size:.68rem;color:var(--y);line-height:1.85;margin-top:5px}
-.ob{background:rgba(0,255,136,.04);border:1px solid rgba(0,255,136,.17);border-radius:4px;padding:11px;font-size:.68rem;color:var(--tx);line-height:1.85;margin-top:5px}
-.fg{display:grid;grid-template-columns:1fr 1fr;gap:7px}@media(max-width:440px){.fg{grid-template-columns:1fr}}
-.fi{background:var(--bg);border:1px solid var(--bdr);border-radius:4px;padding:8px 10px;font-size:.65rem;color:var(--dim);line-height:1.6}
-.fi strong{color:var(--g);display:block;margin-bottom:1px;font-family:var(--U);letter-spacing:1px}
-::-webkit-scrollbar{width:3px}::-webkit-scrollbar-track{background:var(--bg)}::-webkit-scrollbar-thumb{background:var(--bdr)}
+.su{max-width:700px;margin:0 auto;display:flex;flex-direction:column;gap:13px}
+.sc{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:19px}
+.sc h3{font-size:.9rem;font-weight:700;color:var(--tx);margin-bottom:15px;display:flex;align-items:center;gap:8px}
+.sp{display:flex;gap:11px;margin-bottom:11px;align-items:flex-start}
+.sn{min-width:24px;height:24px;border-radius:50%;background:linear-gradient(135deg,var(--accent),#8b5cf6);display:flex;align-items:center;justify-content:center;font-size:.62rem;font-weight:700;color:#fff;flex-shrink:0}
+.st{font-size:.76rem;color:var(--tx2);line-height:1.85}
+.st strong{color:var(--accent2);font-weight:600}
+.st code{background:rgba(108,99,255,.14);color:var(--accent2);padding:1px 5px;border-radius:4px;font-family:var(--mono);font-size:.82em;word-break:break-all}
+.ib{background:rgba(108,99,255,.08);border:1px solid rgba(108,99,255,.22);border-radius:var(--r2);padding:13px;font-size:.74rem;color:var(--tx2);line-height:1.85;margin-bottom:15px}
+.ib strong{color:var(--accent2)}
+.wb{background:rgba(251,191,36,.07);border:1px solid rgba(251,191,36,.24);border-radius:var(--r2);padding:13px;font-size:.73rem;color:var(--yellow);line-height:1.85;margin-top:9px}
+.wb strong{font-weight:700}
+.db-row{display:flex;gap:7px;margin-top:13px}
+.db-in{flex:1;background:var(--card);border:1px solid var(--border2);color:var(--tx);padding:10px 12px;font-family:var(--mono);font-size:.7rem;border-radius:var(--r2);outline:none;transition:border-color .2s}
+.db-in:focus{border-color:var(--accent)}
+.db-in::placeholder{color:var(--tx3)}
+.sv-btn{padding:10px 17px;background:linear-gradient(135deg,var(--accent),#8b5cf6);color:#fff;border:none;border-radius:var(--r2);font-family:var(--sans);font-weight:700;font-size:.76rem;cursor:pointer;transition:all .2s;box-shadow:0 2px 10px rgba(108,99,255,.3);white-space:nowrap}
+.sv-btn:hover{transform:translateY(-1px);box-shadow:0 4px 16px rgba(108,99,255,.45)}
+#FBST{font-size:.66rem;color:var(--tx3);margin-top:7px}
+.fg{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+@media(max-width:440px){.fg{grid-template-columns:1fr}}
+.fi{background:var(--card);border:1px solid var(--border);border-radius:var(--r2);padding:11px 13px}
+.fi strong{color:var(--accent2);font-size:.7rem;font-weight:700;display:block;margin-bottom:2px}
+.fi span{font-size:.68rem;color:var(--tx3)}
 </style>
 </head>
 <body>
 
-<!-- ── PIN ── -->
-<div id="PIN">
-  <div class="pL">DPWED CAM</div>
-  <div class="pS">SECURE ACCESS · ENTER PIN</div>
-  <div class="pD">
-    <div class="pd" id="d0"></div><div class="pd" id="d1"></div><div class="pd" id="d2"></div>
-    <div class="pd" id="d3"></div><div class="pd" id="d4"></div><div class="pd" id="d5"></div>
-  </div>
-  <div class="pE" id="PE"></div>
-  <div class="pG">
-    <button class="pb" onclick="pk('1')">1</button><button class="pb" onclick="pk('2')">2</button><button class="pb" onclick="pk('3')">3</button>
-    <button class="pb" onclick="pk('4')">4</button><button class="pb" onclick="pk('5')">5</button><button class="pb" onclick="pk('6')">6</button>
-    <button class="pb" onclick="pk('7')">7</button><button class="pb" onclick="pk('8')">8</button><button class="pb" onclick="pk('9')">9</button>
-    <button class="pb" style="color:var(--dim)" onclick="pk('')">⌫</button>
-    <button class="pb" onclick="pk('0')">0</button>
-    <button class="pb" style="color:var(--r)" onclick="pk('C')">CLR</button>
-  </div>
-</div>
-
-<div id="TS"></div>
+<div id="TOAST"></div>
 
 <header>
-  <div class="brand">Dpwed WebRTC cam<small>LIVE CAMERA MONITOR</small></div>
-  <div class="hst">
-    <span><span class="rl bk"></span>LIVE</span>
-    <span id="HT">--:--:--</span>
-    <span id="HC">0 CAM</span>
+  <div class="brand">
+    <div class="brand-icon">📡</div>
+    <div>
+      <div class="brand-name">Dpwed <span>WebRTC</span> cam</div>
+      <div class="brand-sub">Live Camera Monitor</div>
+    </div>
+  </div>
+  <div class="hstat">
+    <div class="hbadge"><span class="pulse" id="LP"></span><span id="HT">--:--:--</span></div>
+    <div class="hbadge" id="HC">0 CAM</div>
   </div>
 </header>
 
 <div class="tabs">
-  <button class="tab on" id="TR" onclick="tab('R')">📺 RECEIVER</button>
-  <button class="tab" id="TS2" onclick="tab('S')">📷 SENDER</button>
-  <button class="tab" id="TH" onclick="tab('H')">⚙ SETUP</button>
+  <button class="tab on" id="TR" onclick="goTab('R')">📺 Receiver</button>
+  <button class="tab" id="TS2" onclick="goTab('S')">📷 Sender</button>
+  <button class="tab" id="TH" onclick="goTab('H')">⚙ Setup</button>
 </div>
 
 <!-- RECEIVER -->
 <div class="pg on" id="pgR">
-  <div class="rh">
+  <div class="rx-hdr">
     <div>
-      <div class="dt" style="border:none;padding:0;margin:0">CAMERA FEEDS</div>
-      <div class="ccnt">Live: <b id="AC">0</b></div>
+      <h2>Camera Feeds</h2>
+      <p>Live cameras: <b id="AC">0</b></p>
     </div>
-    <button class="smb" onclick="rxRestart()">↺ RESTART</button>
+    <button class="restart-btn" onclick="rxRestart()">↺ Restart</button>
   </div>
   <div id="GR">
     <div class="empty">
-      <span class="ei">📷</span>
-      WAITING FOR CAMERAS...<br>
-      Open same URL on sender → <strong style="color:var(--g)">SENDER tab</strong><br>→ tap START CAMERA + MIC
+      <span class="empty-ico">📷</span>
+      <h3>Waiting for cameras...</h3>
+      <p>Open the same URL on a sender device<br>→ <strong>Sender tab</strong> → Start Camera + Mic</p>
     </div>
   </div>
 </div>
 
 <!-- SENDER -->
 <div class="pg" id="pgS">
-  <div class="sw">
+  <div class="s-grid">
     <div>
-      <div class="cb">
+      <div class="prev-box">
         <video id="LV" autoplay playsinline muted></video>
-        <div class="ch">
-          <div class="cl">◉ PREVIEW</div>
-          <div class="cx"><span class="rl bk" id="BL" style="display:none"></span><span id="SS">READY</span></div>
+        <div class="prev-hud">
+          <div class="prev-lbl">◉ PREVIEW</div>
+          <div class="prev-st"><span class="pulse" id="BL" style="display:none"></span><span id="SS">Ready</span></div>
         </div>
       </div>
-      <div class="csw">
-        <button class="cs on" id="BK" onclick="flipCam('environment')">⬛ BACK</button>
-        <button class="cs" id="BF" onclick="flipCam('user')">🤳 FRONT</button>
+      <div class="cam-sw">
+        <button class="sw-btn on" id="BK" onclick="flipCam('environment')">⬛ Back Camera</button>
+        <button class="sw-btn" id="BF" onclick="flipCam('user')">🤳 Front Camera</button>
       </div>
     </div>
-    <div class="dg">
-      <div class="dt">DIAGNOSTICS</div>
-      <div class="dr"><span class="dk">CAM+MIC PERM</span><span class="dv" id="DP">—</span></div>
-      <div class="dr"><span class="dk">FACING</span><span class="dv" id="DF">—</span></div>
-      <div class="dr"><span class="dk">RESOLUTION</span><span class="dv" id="DR">—</span></div>
-      <div class="dr"><span class="dk">FPS</span><span class="dv" id="DZ">—</span></div>
-      <div class="dr"><span class="dk">AUDIO</span><span class="dv" id="DA">—</span></div>
-      <div class="dr"><span class="dk">ROOM ID</span><span class="dv" id="DI" style="font-size:.52rem">—</span></div>
-      <div class="dr"><span class="dk">SIGNAL</span><span class="dv" id="DG">—</span></div>
-      <div class="dr"><span class="dk">STREAM</span><span class="dv" id="DT">—</span></div>
-      <div class="dr"><span class="dk">NETWORK</span><span class="dv" id="DN">—</span></div>
-      <div class="dr"><span class="dk">UPTIME</span><span class="dv" id="DU">00:00:00</span></div>
-      <hr style="border-color:var(--bdr);margin:3px 0">
-      <button class="btn gbtn" id="BS" onclick="txStart()">▶ START CAMERA + MIC</button>
-      <button class="btn rbtn" id="BP" onclick="txStop()" style="display:none;margin-top:5px">■ STOP</button>
+    <div class="diag">
+      <div class="diag-ttl">Diagnostics</div>
+      <div class="d-row"><span class="d-k">Cam + Mic</span><span class="d-v" id="DP">—</span></div>
+      <div class="d-row"><span class="d-k">Facing</span><span class="d-v" id="DF">—</span></div>
+      <div class="d-row"><span class="d-k">Resolution</span><span class="d-v" id="DR">—</span></div>
+      <div class="d-row"><span class="d-k">FPS</span><span class="d-v" id="DZ">—</span></div>
+      <div class="d-row"><span class="d-k">Audio</span><span class="d-v" id="DA">—</span></div>
+      <div class="d-row"><span class="d-k">Room ID</span><span class="d-v" id="DI" style="font-size:.52rem">—</span></div>
+      <div class="d-row"><span class="d-k">Signal</span><span class="d-v" id="DG">—</span></div>
+      <div class="d-row"><span class="d-k">Stream</span><span class="d-v" id="DT">—</span></div>
+      <div class="d-row"><span class="d-k">Network</span><span class="d-v" id="DN">—</span></div>
+      <div class="d-row"><span class="d-k">Uptime</span><span class="d-v" id="DU">00:00:00</span></div>
+      <hr class="dv">
+      <button class="start-btn" id="BS" onclick="txStart()">▶ Start Camera + Mic</button>
+      <button class="stop-btn" id="BP" onclick="txStop()" style="display:none">■ Stop Stream</button>
     </div>
   </div>
 </div>
@@ -204,90 +222,66 @@ header{border-bottom:1px solid var(--bdr);padding:8px 14px;display:flex;align-it
 <div class="pg" id="pgH">
   <div class="su">
     <div class="sc">
-      <h3>🔧 One-Time Firebase Setup (Free, 5 minutes)</h3>
-      <div class="ob">
-        This app uses <strong>Firebase Realtime Database</strong> as the signaling server — it's completely free, reliable, and has no ghost-session problems. You only set it up once. Video streams peer-to-peer (not through Firebase) so it's fast.
+      <h3>🔥 Firebase Setup <span style="font-size:.62rem;font-weight:400;color:var(--tx3);margin-left:4px">One-time · Free</span></h3>
+      <div class="ib">Uses <strong>Firebase Realtime Database</strong> as signaling relay — free, reliable, no conflicts. Video goes direct peer-to-peer so it's fast.</div>
+      <div class="sp"><div class="sn">1</div><div class="st">Go to <strong>console.firebase.google.com</strong> → open your existing project.</div></div>
+      <div class="sp"><div class="sn">2</div><div class="st"><strong>Build → Realtime Database → Create Database → Start in test mode → Enable</strong></div></div>
+      <div class="sp"><div class="sn">3</div><div class="st">Copy the URL shown: <code>https://your-project-default-rtdb.firebaseio.com</code></div></div>
+      <div class="sp"><div class="sn">4</div><div class="st">Paste below and tap <strong>Save</strong>. Do this on every device once.</div></div>
+      <div class="db-row">
+        <input class="db-in" id="FBURL" placeholder="https://your-project-default-rtdb.firebaseio.com">
+        <button class="sv-btn" onclick="saveDB()">Save</button>
       </div>
-      <br>
-      <div class="sp"><div class="sn">1</div><div class="st">Go to <strong>console.firebase.google.com</strong> → click <strong>Add project</strong> → enter any name → click through (no Analytics needed).</div></div>
-      <div class="sp"><div class="sn">2</div><div class="st">In your project, click <strong>Build → Realtime Database → Create Database → Start in test mode → Enable</strong>.</div></div>
-      <div class="sp"><div class="sn">3</div><div class="st">Copy the database URL shown (looks like <code>https://YOUR-PROJECT-default-rtdb.firebaseio.com</code>).</div></div>
-      <div class="sp"><div class="sn">4</div><div class="st">Paste the URL below and tap SAVE. That's it — all devices must use the same URL.</div></div>
-      <div style="display:flex;gap:7px;margin-top:10px">
-        <input id="FBURL" placeholder="https://YOUR-PROJECT-default-rtdb.firebaseio.com" 
-          style="flex:1;background:var(--bg);border:1px solid var(--bdr);color:var(--tx);padding:9px 10px;font-family:var(--M);font-size:.7rem;border-radius:4px;outline:none"
-          onfocus="this.style.borderColor='var(--g)'" onblur="this.style.borderColor='var(--bdr)'">
-        <button onclick="saveDB()" style="padding:9px 14px;background:var(--g);color:#000;border:none;border-radius:4px;font-family:var(--U);font-weight:700;font-size:.75rem;cursor:pointer;letter-spacing:1px">SAVE</button>
-      </div>
-      <div id="FBST" style="font-size:.64rem;color:var(--dim);margin-top:6px">No database URL saved yet.</div>
+      <div id="FBST">No URL saved yet.</div>
+      <div class="wb">⚠ <strong>Same URL on all devices.</strong> In Firebase → Realtime Database → Rules: set <code>.read</code> and <code>.write</code> to <code>true</code> → Publish.</div>
     </div>
 
     <div class="sc">
       <h3>⚡ How to Use</h3>
-      <div class="sp"><div class="sn">1</div><div class="st">Complete Firebase setup above first (one-time, 5 min).</div></div>
-      <div class="sp"><div class="sn">2</div><div class="st"><strong>Receiver</strong>: Open URL → stay on RECEIVER tab. Green SERVER dot = ready.</div></div>
-      <div class="sp"><div class="sn">3</div><div class="st"><strong>Sender</strong>: Open same URL → SENDER tab → <strong>▶ START CAMERA + MIC</strong> → allow both permissions.</div></div>
-      <div class="sp"><div class="sn">4</div><div class="st">Camera appears on receiver within ~3 seconds. Add as many senders as you want — each gets its own tile.</div></div>
-      <div class="sp"><div class="sn">5</div><div class="st">Tap <strong>⟳ FLIP</strong> to switch front/back camera. Tap <strong>🔇</strong> to unmute audio (muted by default).</div></div>
-      <div class="wb">⚠ Same Firebase URL must be saved on ALL devices (sender and receiver). Save it in the box above on each device.</div>
+      <div class="sp"><div class="sn">1</div><div class="st"><strong>Receiver:</strong> Open URL in Chrome → stay on Receiver tab → green SIGNAL dot = ready.</div></div>
+      <div class="sp"><div class="sn">2</div><div class="st"><strong>Sender:</strong> Open same URL → Sender tab → <strong>Start Camera + Mic</strong> → allow both.</div></div>
+      <div class="sp"><div class="sn">3</div><div class="st">Feed appears on receiver in ~3 seconds. Add as many senders as you want.</div></div>
+      <div class="sp"><div class="sn">4</div><div class="st">Tap <strong>↻ Flip</strong> on any tile to switch front/back. Tap <strong>🔇</strong> to unmute audio.</div></div>
     </div>
 
     <div class="sc">
-      <h3>✅ Features</h3>
+      <h3>✦ Features</h3>
       <div class="fg">
-        <div class="fi"><strong>NO CODE NEEDED</strong>Grant permissions → auto-connects</div>
-        <div class="fi"><strong>10+ CAMERAS</strong>Each sender = own live tile</div>
-        <div class="fi"><strong>AUDIO STREAM</strong>Mic + camera together, muted by default</div>
-        <div class="fi"><strong>FLIP CAMERA</strong>Switch front/back per camera</div>
-        <div class="fi"><strong>PIN LOCK</strong>PIN 225400, unlocks once forever</div>
-        <div class="fi"><strong>AUTO RECONNECT</strong>Reconnects on any drop</div>
-        <div class="fi"><strong>NO FREEZE</strong>Pure WebRTC, direct peer-to-peer</div>
-        <div class="fi"><strong>4G / INTERNET</strong>Works across any network</div>
+        <div class="fi"><strong>Auto Connect</strong><span>Grant permissions → streams instantly</span></div>
+        <div class="fi"><strong>10+ Cameras</strong><span>Each sender = own live tile</span></div>
+        <div class="fi"><strong>Audio Stream</strong><span>Mic + camera, muted by default</span></div>
+        <div class="fi"><strong>Flip Camera</strong><span>Switch front/back per tile</span></div>
+        <div class="fi"><strong>Auto Reconnect</strong><span>Retries on any disconnect</span></div>
+        <div class="fi"><strong>No Freeze</strong><span>Pure WebRTC, peer-to-peer</span></div>
+        <div class="fi"><strong>Works on 4G</strong><span>Any network, anywhere</span></div>
+        <div class="fi"><strong>Free Forever</strong><span>Firebase + GitHub Pages = $0</span></div>
       </div>
     </div>
 
     <div class="sc">
       <h3>⚠ Notes</h3>
-      <div class="wb">
-        <strong>Screen must stay ON</strong> on sender — Chrome pauses camera when screen locks.<br><br>
+      <div class="wb" style="margin:0">
+        <strong>Keep screen ON</strong> on sender — Chrome pauses camera when screen locks.<br><br>
         <strong>Use Chrome</strong> on Android for best WebRTC support.<br><br>
-        <strong>HTTPS required</strong> — GitHub Pages provides this free automatically.<br><br>
-        <strong>Bandwidth</strong>: each camera ≈ 1.5–2.5 Mbps. 10 cameras = 15–25 Mbps on receiver.<br><br>
-        <strong>Firebase free tier</strong>: 1GB storage, 10GB/month transfer — plenty for signaling.
+        <strong>HTTPS required</strong> — GitHub Pages provides this automatically.<br><br>
+        <strong>Bandwidth:</strong> ~1.5–2.5 Mbps per camera. 10 cameras ≈ 20 Mbps on receiver.<br><br>
+        <strong>If stuck:</strong> tap ↺ Restart on receiver, then Stop → Start on sender.
       </div>
     </div>
   </div>
 </div>
 
 <div id="SB">
-  <span><span class="dot" id="dS"></span>SIGNAL</span>
-  <span><span class="dot" id="dC"></span>CAMERA</span>
-  <span><span class="dot" id="dT"></span>STREAM</span>
+  <span><span class="sd" id="dS"></span>Signal</span>
+  <span><span class="sd" id="dC"></span>Camera</span>
+  <span><span class="sd" id="dT"></span>Stream</span>
   <span id="sIP">IP: —</span>
   <span id="sNT">NET: —</span>
 </div>
 
-<!-- Firebase SDK -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
-
 <script>
 'use strict';
-
-// ═══════════════════════════════════════════════════════════════
-// CONFIG
-// ═══════════════════════════════════════════════════════════════
-
-const DBK     = 'dpwed_db';
-const MYK     = 'dpwed_myid';
-const ROOM    = 'dpwed_room_v1'; // Firebase path prefix
-const ICE     = {
-  iceServers:[
-    {urls:'stun:stun.l.google.com:19302'},
-    {urls:'stun:stun1.l.google.com:19302'},
-    {urls:'stun:stun2.l.google.com:19302'},
-    {urls:'stun:stun3.l.google.com:19302'}
-  ]
-};
-
-
+const DBK='dpwed_db_v2',MYK='dpwed_myid_v2',ROOM='dpwed_v2';
+const ICE={iceServers:[{urls:'stun:stun.l.google.com:19302'},{urls:'stun:stun1.l.google.com:19302

@@ -2,224 +2,279 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>LiveCam Monitor</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Dpwed-webRTC cam</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@400;600;700&display=swap');
-:root{--bg:#080c10;--panel:#0d1318;--border:#1a2a1a;--green:#00ff88;--gdim:#00994d;--red:#ff3355;--yellow:#ffcc00;--text:#c8e6c8;--tdim:#4a6a4a;--mono:'Share Tech Mono',monospace;--ui:'Rajdhani',sans-serif}
+:root{
+  --bg:#070b0f;--panel:#0c1117;--border:#182818;
+  --g:#00ff88;--gdim:#009955;--r:#ff3355;--y:#ffcc00;--b:#00aaff;
+  --tx:#c5e5c5;--tdim:#3d5c3d;
+  --mono:'Share Tech Mono',monospace;--ui:'Rajdhani',sans-serif;
+}
 *{box-sizing:border-box;margin:0;padding:0}
-body{background:var(--bg);color:var(--text);font-family:var(--mono);min-height:100vh;overflow-x:hidden}
-body::before{content:'';position:fixed;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,255,136,.012) 2px,rgba(0,255,136,.012) 4px);pointer-events:none;z-index:9999}
-#pin{position:fixed;inset:0;background:#000;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:10000;gap:20px}
+html,body{height:100%}
+body{background:var(--bg);color:var(--tx);font-family:var(--mono);min-height:100vh;overflow-x:hidden;padding-bottom:36px}
+body::before{content:'';position:fixed;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,255,136,.01) 2px,rgba(0,255,136,.01) 4px);pointer-events:none;z-index:9000}
+
+/* ── PIN ─────────────────────────────────── */
+#pin{position:fixed;inset:0;background:#000;z-index:10000;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px}
 #pin.hide{display:none}
-.plogo{font-family:var(--ui);font-size:2rem;font-weight:700;color:var(--green);letter-spacing:6px}
-.psub{font-size:.7rem;color:var(--tdim);letter-spacing:3px}
-.pdots{display:flex;gap:12px}
-.pdot{width:14px;height:14px;border-radius:50%;border:2px solid var(--gdim);transition:.15s}
-.pdot.on{background:var(--green);border-color:var(--green);box-shadow:0 0 8px var(--green)}
-.pgrid{display:grid;grid-template-columns:repeat(3,68px);gap:8px}
-.pbtn{height:68px;background:var(--panel);border:1px solid var(--border);color:var(--text);font-family:var(--ui);font-size:1.5rem;font-weight:700;cursor:pointer;border-radius:4px;transition:.1s}
-.pbtn:active{background:var(--green);color:#000;transform:scale(.95)}
-.perr{color:var(--red);font-size:.75rem;letter-spacing:2px;height:18px;text-align:center}
-header{border-bottom:1px solid var(--border);padding:10px 18px;display:flex;align-items:center;justify-content:space-between;background:rgba(13,19,24,.97);position:sticky;top:0;z-index:100}
-.brand{font-family:var(--ui);font-size:1.3rem;font-weight:700;color:var(--green);letter-spacing:4px}
-.brand small{color:var(--tdim);font-weight:400;font-size:.65rem;display:block;letter-spacing:2px}
-.hstat{display:flex;gap:14px;align-items:center;font-size:.68rem;color:var(--tdim)}
-.blink{animation:bl 1s infinite}@keyframes bl{0%,100%{opacity:1}50%{opacity:.15}}
-.rdot{width:7px;height:7px;border-radius:50%;background:var(--red);display:inline-block;margin-right:3px}
+.plogo{font-family:var(--ui);font-size:1.9rem;font-weight:700;color:var(--g);letter-spacing:5px}
+.psub{font-size:.68rem;color:var(--tdim);letter-spacing:3px}
+.pdots{display:flex;gap:11px}
+.pd{width:13px;height:13px;border-radius:50%;border:2px solid var(--gdim);transition:.15s}
+.pd.on{background:var(--g);border-color:var(--g);box-shadow:0 0 8px var(--g)}
+.pgrid{display:grid;grid-template-columns:repeat(3,66px);gap:8px}
+.pb{height:66px;background:var(--panel);border:1px solid var(--border);color:var(--tx);font-family:var(--ui);font-size:1.4rem;font-weight:700;cursor:pointer;border-radius:4px;transition:.1s;-webkit-tap-highlight-color:transparent}
+.pb:active{background:var(--g);color:#000;transform:scale(.94)}
+.perr{color:var(--r);font-size:.72rem;letter-spacing:2px;height:16px;text-align:center}
+
+/* ── HEADER ──────────────────────────────── */
+header{border-bottom:1px solid var(--border);padding:9px 16px;display:flex;align-items:center;justify-content:space-between;background:rgba(7,11,15,.98);position:sticky;top:0;z-index:100;gap:8px}
+.brand{font-family:var(--ui);font-size:1.1rem;font-weight:700;color:var(--g);letter-spacing:2px;white-space:nowrap}
+.brand small{color:var(--tdim);font-weight:400;font-size:.58rem;display:block;letter-spacing:1px}
+.hstat{display:flex;gap:10px;align-items:center;font-size:.62rem;color:var(--tdim);flex-shrink:0}
+.blink{animation:bl 1s infinite}@keyframes bl{0%,100%{opacity:1}50%{opacity:.1}}
+.rl{width:6px;height:6px;border-radius:50%;background:var(--r);display:inline-block}
+
+/* ── TABS ────────────────────────────────── */
 .tabs{display:flex;border-bottom:1px solid var(--border)}
-.tab{flex:1;padding:13px;text-align:center;font-family:var(--ui);font-size:.85rem;font-weight:600;letter-spacing:3px;text-transform:uppercase;cursor:pointer;border:none;background:var(--panel);color:var(--tdim);border-right:1px solid var(--border);transition:.2s}
-.tab:last-child{border-right:none}.tab.on{background:var(--bg);color:var(--green);border-bottom:2px solid var(--green)}
-.page{display:none;padding:16px}.page.on{display:block}
-.swrap{display:grid;grid-template-columns:1fr 290px;gap:18px;max-width:1100px;margin:0 auto}
-@media(max-width:720px){.swrap{grid-template-columns:1fr}}
+.tab{flex:1;padding:12px 4px;text-align:center;font-family:var(--ui);font-size:.78rem;font-weight:600;letter-spacing:2px;text-transform:uppercase;cursor:pointer;border:none;background:var(--panel);color:var(--tdim);border-right:1px solid var(--border);transition:.2s;-webkit-tap-highlight-color:transparent}
+.tab:last-child{border-right:none}
+.tab.on{background:var(--bg);color:var(--g);border-bottom:2px solid var(--g)}
+.page{display:none;padding:14px}.page.on{display:block}
+
+/* ── SENDER ──────────────────────────────── */
+.swrap{display:grid;grid-template-columns:1fr 280px;gap:16px;max-width:1060px;margin:0 auto}
+@media(max-width:700px){.swrap{grid-template-columns:1fr}}
 .cambox{background:#000;border:1px solid var(--border);border-radius:4px;overflow:hidden;position:relative;aspect-ratio:16/9}
-#lv{width:100%;height:100%;object-fit:cover}
-.camhud{position:absolute;top:0;left:0;right:0;padding:9px 13px;background:linear-gradient(to bottom,rgba(0,0,0,.7),transparent);display:flex;justify-content:space-between;pointer-events:none}
-.clabel{font-size:.68rem;color:var(--green);letter-spacing:2px}
-.cbadge{display:flex;align-items:center;gap:5px;font-size:.62rem;color:var(--red);letter-spacing:2px}
-.cswitch{display:flex;gap:8px;margin-top:10px}
-.csw{flex:1;padding:10px;border:1px solid var(--border);background:var(--bg);color:var(--tdim);font-family:var(--ui);font-size:.72rem;font-weight:600;letter-spacing:2px;cursor:pointer;border-radius:4px;transition:.2s}
-.csw.on{border-color:var(--green);color:var(--green);background:rgba(0,255,136,.05)}
-.diag{background:var(--panel);border:1px solid var(--border);border-radius:4px;padding:14px;display:flex;flex-direction:column;gap:9px}
-.dtitle{font-family:var(--ui);font-size:.72rem;font-weight:700;letter-spacing:4px;color:var(--gdim);text-transform:uppercase;border-bottom:1px solid var(--border);padding-bottom:7px;margin-bottom:2px}
-.drow{display:flex;justify-content:space-between;font-size:.68rem;gap:8px}.dk{color:var(--tdim);flex-shrink:0}
-.dv{color:var(--text);text-align:right;word-break:break-all}.dv.ok{color:var(--green)}.dv.warn{color:var(--yellow)}.dv.err{color:var(--red)}
-.btn{width:100%;padding:13px;border:none;cursor:pointer;font-family:var(--ui);font-size:.88rem;font-weight:700;letter-spacing:3px;text-transform:uppercase;border-radius:4px;transition:.2s;margin-top:2px}
-.gbtn{background:var(--green);color:#000}.gbtn:hover{box-shadow:0 0 18px rgba(0,255,136,.4)}.gbtn:disabled{background:var(--gdim);color:#001;cursor:not-allowed;box-shadow:none}
-.rbtn{background:var(--red);color:#fff}
-.rxhdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
-.camcnt{font-size:.72rem;color:var(--tdim)}.camcnt b{color:var(--green);font-size:1.1rem}
-.smbtn{padding:9px 16px;border:none;cursor:pointer;border-radius:4px;font-family:var(--ui);font-size:.72rem;font-weight:700;letter-spacing:2px;background:var(--green);color:#000}
-#grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px}
-@media(max-width:440px){#grid{grid-template-columns:1fr}}
-.card{background:#000;border:1px solid var(--border);border-radius:5px;overflow:hidden;position:relative}
-.card:hover{border-color:var(--gdim)}.card video{width:100%;aspect-ratio:16/9;display:block;object-fit:cover;background:#000}
-.chud{position:absolute;inset:0;pointer-events:none;display:flex;flex-direction:column;justify-content:space-between;padding:9px}
-.ctop{display:flex;justify-content:space-between;align-items:flex-start}
-.cname{background:rgba(0,0,0,.75);padding:3px 8px;border-radius:3px;font-size:.62rem;color:var(--green);letter-spacing:2px;max-width:55%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.cstat{font-size:.58rem;padding:3px 7px;border-radius:3px;letter-spacing:1px}
-.cstat.live{background:rgba(255,51,85,.85);color:#fff}.cstat.conn{background:rgba(255,204,0,.85);color:#000}.cstat.off{background:rgba(0,0,0,.75);color:var(--tdim)}
-.cbot{display:flex;justify-content:space-between;align-items:flex-end;pointer-events:all}
-.cmini{font-size:.55rem;color:rgba(200,230,200,.55)}
-.flipbtn{background:rgba(0,0,0,.75);border:1px solid rgba(0,255,136,.35);color:var(--green);font-size:.62rem;padding:5px 9px;cursor:pointer;border-radius:3px;font-family:var(--mono);transition:.2s}
-.flipbtn:hover{background:rgba(0,255,136,.12)}
-.empty{grid-column:1/-1;text-align:center;padding:50px 20px;color:var(--tdim);font-size:.78rem;letter-spacing:2px;line-height:2.2}
-.empty span{display:block;font-size:2.5rem;opacity:.25;margin-bottom:12px}
-#sb{position:fixed;bottom:0;left:0;right:0;background:var(--panel);border-top:1px solid var(--border);padding:5px 14px;display:flex;gap:16px;font-size:.62rem;color:var(--tdim);z-index:200;flex-wrap:wrap}
-#sb span{display:flex;align-items:center;gap:5px}
-.sd{width:6px;height:6px;border-radius:50%;background:var(--tdim)}.sd.g{background:var(--green);box-shadow:0 0 5px var(--green)}.sd.r{background:var(--red)}.sd.y{background:var(--yellow)}
-#toast{position:fixed;top:65px;right:14px;z-index:8000;display:flex;flex-direction:column;gap:7px;pointer-events:none}
-.tm{background:var(--panel);border:1px solid var(--gdim);padding:9px 14px;border-radius:4px;font-size:.7rem;color:var(--text);max-width:260px;animation:sin .3s ease,fout .4s ease 3.6s forwards}
-.tm.e{border-color:var(--red)}@keyframes sin{from{transform:translateX(30px);opacity:0}to{transform:none;opacity:1}}@keyframes fout{to{opacity:0;transform:translateX(20px)}}
-.setup{max-width:760px;margin:0 auto}.sec{background:var(--panel);border:1px solid var(--border);border-radius:5px;padding:18px;margin-bottom:14px}
-.sec h3{font-family:var(--ui);font-weight:700;letter-spacing:3px;color:var(--green);font-size:.88rem;margin-bottom:14px;text-transform:uppercase}
-.step{display:flex;gap:12px;margin-bottom:12px;align-items:flex-start}
-.snum{min-width:26px;height:26px;border-radius:50%;border:2px solid var(--gdim);display:flex;align-items:center;justify-content:center;font-size:.72rem;color:var(--green);font-family:var(--ui);font-weight:700;flex-shrink:0}
-.stxt{font-size:.76rem;color:var(--text);line-height:1.75}.stxt strong{color:var(--green)}.stxt code{background:rgba(0,255,136,.1);color:var(--green);padding:1px 5px;border-radius:3px}
-.wbox{background:rgba(255,204,0,.07);border:1px solid rgba(255,204,0,.3);border-radius:4px;padding:13px;font-size:.73rem;color:var(--yellow);line-height:1.8;margin-top:6px}
-.obox{background:rgba(0,255,136,.05);border:1px solid rgba(0,255,136,.2);border-radius:4px;padding:13px;font-size:.73rem;color:var(--text);line-height:1.8;margin-top:6px}
-.fg{display:grid;grid-template-columns:1fr 1fr;gap:9px}@media(max-width:480px){.fg{grid-template-columns:1fr}}
-.fi{background:var(--bg);border:1px solid var(--border);border-radius:4px;padding:9px 13px;font-size:.7rem;color:var(--tdim);line-height:1.6}
-.fi strong{color:var(--green);display:block;margin-bottom:2px;font-family:var(--ui);letter-spacing:1px}
+#lv{width:100%;height:100%;object-fit:cover;display:block}
+.chud{position:absolute;top:0;left:0;right:0;padding:8px 12px;background:linear-gradient(to bottom,rgba(0,0,0,.75),transparent);display:flex;justify-content:space-between;pointer-events:none}
+.clbl{font-size:.65rem;color:var(--g);letter-spacing:2px}
+.cbdg{display:flex;align-items:center;gap:5px;font-size:.6rem;color:var(--r);letter-spacing:2px}
+.csw{display:flex;gap:7px;margin-top:9px}
+.cswb{flex:1;padding:9px 4px;border:1px solid var(--border);background:var(--bg);color:var(--tdim);font-family:var(--ui);font-size:.7rem;font-weight:600;letter-spacing:1px;cursor:pointer;border-radius:4px;transition:.2s;-webkit-tap-highlight-color:transparent}
+.cswb.on{border-color:var(--g);color:var(--g);background:rgba(0,255,136,.05)}
+
+.diag{background:var(--panel);border:1px solid var(--border);border-radius:4px;padding:13px;display:flex;flex-direction:column;gap:8px}
+.dtl{font-family:var(--ui);font-size:.68rem;font-weight:700;letter-spacing:3px;color:var(--gdim);text-transform:uppercase;border-bottom:1px solid var(--border);padding-bottom:6px;margin-bottom:1px}
+.dr{display:flex;justify-content:space-between;font-size:.65rem;gap:6px;align-items:center}
+.dk{color:var(--tdim);flex-shrink:0;font-size:.62rem}
+.dv{color:var(--tx);text-align:right;word-break:break-all;font-size:.65rem}
+.dv.ok{color:var(--g)}.dv.w{color:var(--y)}.dv.e{color:var(--r)}
+.btn{width:100%;padding:12px;border:none;cursor:pointer;font-family:var(--ui);font-size:.84rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;border-radius:4px;transition:.2s;margin-top:2px;-webkit-tap-highlight-color:transparent}
+.gbtn{background:var(--g);color:#000}.gbtn:hover{box-shadow:0 0 16px rgba(0,255,136,.4)}
+.gbtn:disabled{background:var(--gdim);color:#001a08;cursor:not-allowed;box-shadow:none}
+.rbtn{background:var(--r);color:#fff}
+
+/* ── RECEIVER ────────────────────────────── */
+.rxh{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;gap:8px}
+.rxh-l .dtl{margin-bottom:0;border-bottom:none;padding-bottom:0}
+.ccnt{font-size:.68rem;color:var(--tdim)}.ccnt b{color:var(--g);font-size:1rem}
+.smb{padding:8px 14px;border:none;cursor:pointer;border-radius:4px;font-family:var(--ui);font-size:.7rem;font-weight:700;letter-spacing:2px;background:var(--g);color:#000;-webkit-tap-highlight-color:transparent}
+#grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:12px}
+@media(max-width:420px){#grid{grid-template-columns:1fr}}
+.card{background:#000;border:1px solid var(--border);border-radius:5px;overflow:hidden;position:relative;transition:border-color .2s}
+.card:hover{border-color:var(--gdim)}
+.card video{width:100%;aspect-ratio:16/9;display:block;object-fit:cover;background:#000}
+.cov{position:absolute;inset:0;pointer-events:none;display:flex;flex-direction:column;justify-content:space-between;padding:8px}
+.ct{display:flex;justify-content:space-between;align-items:flex-start}
+.cnm{background:rgba(0,0,0,.8);padding:3px 7px;border-radius:3px;font-size:.6rem;color:var(--g);letter-spacing:2px;max-width:54%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cst{font-size:.56rem;padding:3px 7px;border-radius:3px;letter-spacing:1px;font-family:var(--ui);font-weight:600}
+.cst.live{background:rgba(255,51,85,.9);color:#fff}
+.cst.conn{background:rgba(255,204,0,.9);color:#000}
+.cst.off{background:rgba(0,0,0,.8);color:var(--tdim)}
+.cb{display:flex;justify-content:flex-end;align-items:center;gap:6px;pointer-events:all}
+/* mic + flip buttons */
+.icbtn{background:rgba(0,0,0,.78);border:1px solid rgba(0,255,136,.3);color:var(--g);font-size:.75rem;width:30px;height:30px;display:flex;align-items:center;justify-content:center;cursor:pointer;border-radius:4px;transition:.2s;-webkit-tap-highlight-color:transparent;flex-shrink:0}
+.icbtn:hover{background:rgba(0,255,136,.14)}
+.icbtn.muted{border-color:rgba(255,51,85,.5);color:var(--r)}
+.flipbtn{background:rgba(0,0,0,.78);border:1px solid rgba(0,255,136,.3);color:var(--g);font-size:.6rem;padding:5px 8px;cursor:pointer;border-radius:4px;transition:.2s;font-family:var(--mono);-webkit-tap-highlight-color:transparent}
+.flipbtn:hover{background:rgba(0,255,136,.14)}
+.cmini{font-size:.52rem;color:rgba(200,230,200,.45);margin-right:auto}
+
+/* ── EMPTY STATE ─────────────────────────── */
+.empty{grid-column:1/-1;text-align:center;padding:48px 16px;color:var(--tdim);font-size:.75rem;letter-spacing:2px;line-height:2.4}
+.empty .eico{font-size:2.4rem;opacity:.2;display:block;margin-bottom:10px}
+
+/* ── STATUS BAR ──────────────────────────── */
+#sb{position:fixed;bottom:0;left:0;right:0;background:var(--panel);border-top:1px solid var(--border);padding:4px 12px;display:flex;gap:14px;font-size:.58rem;color:var(--tdim);z-index:500;flex-wrap:wrap}
+#sb>span{display:flex;align-items:center;gap:4px}
+.dot{width:5px;height:5px;border-radius:50%;background:var(--tdim)}
+.dot.g{background:var(--g);box-shadow:0 0 4px var(--g)}.dot.r{background:var(--r)}.dot.y{background:var(--y)}
+
+/* ── TOAST ───────────────────────────────── */
+#toast{position:fixed;top:62px;right:12px;z-index:8000;display:flex;flex-direction:column;gap:6px;pointer-events:none;max-width:240px}
+.tm{background:var(--panel);border:1px solid var(--gdim);padding:8px 12px;border-radius:4px;font-size:.67rem;color:var(--tx);animation:tsi .25s ease,tfo .4s ease 3.6s forwards;word-break:break-word}
+.tm.e{border-color:var(--r)}
+@keyframes tsi{from{transform:translateX(25px);opacity:0}to{transform:none;opacity:1}}
+@keyframes tfo{to{opacity:0;transform:translateX(18px)}}
+
+/* ── SETUP PAGE ──────────────────────────── */
+.setup{max-width:720px;margin:0 auto}
+.sec{background:var(--panel);border:1px solid var(--border);border-radius:5px;padding:16px;margin-bottom:12px}
+.sec h3{font-family:var(--ui);font-weight:700;letter-spacing:3px;color:var(--g);font-size:.84rem;margin-bottom:12px;text-transform:uppercase}
+.step{display:flex;gap:11px;margin-bottom:11px;align-items:flex-start}
+.sn{min-width:24px;height:24px;border-radius:50%;border:2px solid var(--gdim);display:flex;align-items:center;justify-content:center;font-size:.68rem;color:var(--g);font-family:var(--ui);font-weight:700;flex-shrink:0}
+.st{font-size:.73rem;color:var(--tx);line-height:1.8}
+.st strong{color:var(--g)}.st code{background:rgba(0,255,136,.1);color:var(--g);padding:1px 4px;border-radius:3px;font-size:.85em}
+.wbx{background:rgba(255,204,0,.07);border:1px solid rgba(255,204,0,.28);border-radius:4px;padding:12px;font-size:.7rem;color:var(--y);line-height:1.8;margin-top:5px}
+.obx{background:rgba(0,255,136,.05);border:1px solid rgba(0,255,136,.18);border-radius:4px;padding:12px;font-size:.7rem;color:var(--tx);line-height:1.8;margin-top:5px}
+.fg{display:grid;grid-template-columns:1fr 1fr;gap:8px}@media(max-width:460px){.fg{grid-template-columns:1fr}}
+.fi{background:var(--bg);border:1px solid var(--border);border-radius:4px;padding:8px 11px;font-size:.67rem;color:var(--tdim);line-height:1.6}
+.fi strong{color:var(--g);display:block;margin-bottom:1px;font-family:var(--ui);letter-spacing:1px}
 ::-webkit-scrollbar{width:3px}::-webkit-scrollbar-track{background:var(--bg)}::-webkit-scrollbar-thumb{background:var(--border)}
 </style>
 </head>
 <body>
 
+<!-- PIN LOCK -->
 <div id="pin">
-  <div class="plogo">LIVECAM</div>
-  <div class="psub">ENTER PIN TO ACCESS</div>
+  <div class="plogo">DPWED CAM</div>
+  <div class="psub">SECURE ACCESS — ENTER PIN</div>
   <div class="pdots">
-    <div class="pdot" id="pd0"></div><div class="pdot" id="pd1"></div><div class="pdot" id="pd2"></div>
-    <div class="pdot" id="pd3"></div><div class="pdot" id="pd4"></div><div class="pdot" id="pd5"></div>
+    <div class="pd" id="pd0"></div><div class="pd" id="pd1"></div><div class="pd" id="pd2"></div>
+    <div class="pd" id="pd3"></div><div class="pd" id="pd4"></div><div class="pd" id="pd5"></div>
   </div>
   <div class="perr" id="perr"></div>
   <div class="pgrid">
-    <button class="pbtn" onclick="pk('1')">1</button><button class="pbtn" onclick="pk('2')">2</button><button class="pbtn" onclick="pk('3')">3</button>
-    <button class="pbtn" onclick="pk('4')">4</button><button class="pbtn" onclick="pk('5')">5</button><button class="pbtn" onclick="pk('6')">6</button>
-    <button class="pbtn" onclick="pk('7')">7</button><button class="pbtn" onclick="pk('8')">8</button><button class="pbtn" onclick="pk('9')">9</button>
-    <button class="pbtn" style="color:var(--tdim)" onclick="pk('')">⌫</button>
-    <button class="pbtn" onclick="pk('0')">0</button>
-    <button class="pbtn" style="color:var(--red)" onclick="pc()">CLR</button>
+    <button class="pb" onclick="pk('1')">1</button><button class="pb" onclick="pk('2')">2</button><button class="pb" onclick="pk('3')">3</button>
+    <button class="pb" onclick="pk('4')">4</button><button class="pb" onclick="pk('5')">5</button><button class="pb" onclick="pk('6')">6</button>
+    <button class="pb" onclick="pk('7')">7</button><button class="pb" onclick="pk('8')">8</button><button class="pb" onclick="pk('9')">9</button>
+    <button class="pb" style="color:var(--tdim)" onclick="pk('')">⌫</button>
+    <button class="pb" onclick="pk('0')">0</button>
+    <button class="pb" style="color:var(--r)" onclick="pc()">CLR</button>
   </div>
 </div>
 
 <div id="toast"></div>
 
 <header>
-  <div class="brand">LIVECAM <small>REMOTE MONITOR v2.0</small></div>
+  <div class="brand">Dpwed-webRTC cam <small>REMOTE MONITOR SYSTEM</small></div>
   <div class="hstat">
-    <span><span class="rdot blink"></span>LIVE</span>
-    <span id="htime">--:--:--</span>
-    <span id="hcams">0 CAM</span>
+    <span><span class="rl blink"></span>LIVE</span>
+    <span id="htm">--:--:--</span>
+    <span id="hcam">0 CAM</span>
   </div>
 </header>
 
 <div class="tabs">
-  <button class="tab on" onclick="pg('Rx')" id="tRx">📺 RECEIVER</button>
-  <button class="tab" onclick="pg('Tx')" id="tTx">📷 SENDER</button>
-  <button class="tab" onclick="pg('Setup')" id="tSetup">⚙ SETUP</button>
+  <button class="tab on" id="tRx" onclick="showPg('Rx')">📺 RECEIVER</button>
+  <button class="tab" id="tTx" onclick="showPg('Tx')">📷 SENDER</button>
+  <button class="tab" id="tSetup" onclick="showPg('Setup')">⚙ SETUP</button>
 </div>
 
+<!-- ═══ RECEIVER PAGE ═══ -->
 <div class="page on" id="pageRx">
-  <div class="rxhdr">
-    <div><div class="dtitle">CAMERA FEEDS</div><div class="camcnt">Active: <b id="acnt">0</b></div></div>
-    <button class="smbtn" onclick="rxRestart()">↺ RESTART</button>
+  <div class="rxh">
+    <div class="rxh-l">
+      <div class="dtl">CAMERA FEEDS</div>
+      <div class="ccnt">Live cameras: <b id="acnt">0</b></div>
+    </div>
+    <button class="smb" onclick="rxRestart()">↺ RESTART RECEIVER</button>
   </div>
   <div id="grid">
-    <div class="empty"><span>📷</span>
-      WAITING FOR CAMERAS...<br>
-      On sender: open same URL → <strong style="color:var(--green)">SENDER tab</strong> → START CAMERA
+    <div class="empty">
+      <span class="eico">📷</span>
+      WAITING FOR CAMERA CONNECTIONS...<br>
+      Open the same URL on sender devices<br>→ <strong style="color:var(--g)">SENDER tab</strong> → START CAMERA + MIC
     </div>
   </div>
 </div>
 
+<!-- ═══ SENDER PAGE ═══ -->
 <div class="page" id="pageTx">
   <div class="swrap">
     <div>
       <div class="cambox">
         <video id="lv" autoplay playsinline muted></video>
-        <div class="camhud">
-          <div class="clabel">◉ PREVIEW</div>
-          <div class="cbadge"><span class="rdot blink" id="sblink" style="display:none"></span><span id="sstatus">READY</span></div>
+        <div class="chud">
+          <div class="clbl">◉ PREVIEW</div>
+          <div class="cbdg">
+            <span class="rl blink" id="sblink" style="display:none"></span>
+            <span id="sst">READY</span>
+          </div>
         </div>
       </div>
-      <div class="cswitch">
-        <button class="csw on" id="bBack" onclick="swCam('environment')">⬛ BACK</button>
-        <button class="csw" id="bFront" onclick="swCam('user')">🤳 FRONT</button>
+      <div class="csw">
+        <button class="cswb on" id="bBk" onclick="swCam('environment')">⬛ BACK CAM</button>
+        <button class="cswb" id="bFr" onclick="swCam('user')">🤳 FRONT CAM</button>
       </div>
     </div>
     <div class="diag">
-      <div class="dtitle">DIAGNOSTICS</div>
-      <div class="drow"><span class="dk">CAM PERMISSION</span><span class="dv" id="dPerm">—</span></div>
-      <div class="drow"><span class="dk">FACING</span><span class="dv" id="dFace">—</span></div>
-      <div class="drow"><span class="dk">RESOLUTION</span><span class="dv" id="dRes">—</span></div>
-      <div class="drow"><span class="dk">FPS</span><span class="dv" id="dFps">—</span></div>
-      <div class="drow"><span class="dk">MY ID</span><span class="dv" id="dMyId" style="font-size:.58rem">—</span></div>
-      <div class="drow"><span class="dk">SERVER</span><span class="dv" id="dSig">—</span></div>
-      <div class="drow"><span class="dk">STREAM</span><span class="dv" id="dStr">—</span></div>
-      <div class="drow"><span class="dk">NETWORK</span><span class="dv" id="dNet">—</span></div>
-      <div class="drow"><span class="dk">UPTIME</span><span class="dv" id="dUp">00:00:00</span></div>
-      <hr style="border-color:var(--border);margin:4px 0">
-      <button class="btn gbtn" id="bStart" onclick="txStart()">▶ START CAMERA</button>
-      <button class="btn rbtn" id="bStop" onclick="txStop()" style="display:none;margin-top:6px">■ STOP</button>
+      <div class="dtl">DIAGNOSTICS</div>
+      <div class="dr"><span class="dk">CAM + MIC PERM</span><span class="dv" id="dPerm">—</span></div>
+      <div class="dr"><span class="dk">CAMERA FACING</span><span class="dv" id="dFace">—</span></div>
+      <div class="dr"><span class="dk">RESOLUTION</span><span class="dv" id="dRes">—</span></div>
+      <div class="dr"><span class="dk">FPS</span><span class="dv" id="dFps">—</span></div>
+      <div class="dr"><span class="dk">AUDIO TRACK</span><span class="dv" id="dAud">—</span></div>
+      <div class="dr"><span class="dk">MY PEER ID</span><span class="dv" id="dMid" style="font-size:.55rem">—</span></div>
+      <div class="dr"><span class="dk">SERVER</span><span class="dv" id="dSrv">—</span></div>
+      <div class="dr"><span class="dk">STREAM STATUS</span><span class="dv" id="dStr">—</span></div>
+      <div class="dr"><span class="dk">NETWORK</span><span class="dv" id="dNet">—</span></div>
+      <div class="dr"><span class="dk">UPTIME</span><span class="dv" id="dUp">00:00:00</span></div>
+      <hr style="border-color:var(--border);margin:3px 0">
+      <button class="btn gbtn" id="bStart" onclick="txStart()">▶ START CAMERA + MIC</button>
+      <button class="btn rbtn" id="bStop" onclick="txStop()" style="display:none;margin-top:6px">■ STOP STREAM</button>
     </div>
   </div>
 </div>
 
+<!-- ═══ SETUP PAGE ═══ -->
 <div class="page" id="pageSetup">
   <div class="setup">
     <div class="sec">
       <h3>🔧 How It Works</h3>
-      <div class="obox">
-        Uses <strong>WebRTC</strong> (direct peer-to-peer video) via PeerJS. The receiver holds a daily-rotating peer ID slot. Senders find it automatically — no codes. Works over internet from any device on any network including 4G/5G.
+      <div class="obx">
+        <strong>Dpwed-webRTC cam</strong> uses WebRTC peer-to-peer technology. The receiver holds a daily peer ID slot. Senders find it automatically via localStorage (same device) or slot-probing (different devices). Camera + microphone stream together. Audio is muted by default on receiver — tap 🎤 on any tile to unmute.
       </div>
     </div>
     <div class="sec">
-      <h3>⚡ Same Device (2 Chrome tabs)</h3>
-      <div class="step"><div class="snum">1</div><div class="stxt">Open the URL in Chrome → <strong>Tab 1</strong> → stays on <strong>RECEIVER</strong> tab.</div></div>
-      <div class="step"><div class="snum">2</div><div class="stxt">Open a new Chrome tab → same URL → <strong>SENDER tab</strong> → tap <strong>▶ START CAMERA</strong> → allow permission.</div></div>
-      <div class="step"><div class="snum">3</div><div class="stxt">Switch to Tab 1. Camera appears within ~3 seconds. ✅</div></div>
-      <div class="wbox">⚠ If stuck: on Receiver tab tap <strong>↺ RESTART</strong>, then on Sender tab tap <strong>■ STOP</strong> then <strong>▶ START CAMERA</strong> again.</div>
+      <h3>⚡ Same Device — 2 Chrome Tabs</h3>
+      <div class="step"><div class="sn">1</div><div class="st">Open your GitHub Pages URL in Chrome → <strong>Tab 1</strong> stays on <strong>RECEIVER</strong>.</div></div>
+      <div class="step"><div class="sn">2</div><div class="st">Open a new tab → same URL → tap <strong>SENDER</strong> tab.</div></div>
+      <div class="step"><div class="sn">3</div><div class="st">Tap <strong>▶ START CAMERA + MIC</strong> → allow both camera AND microphone.</div></div>
+      <div class="step"><div class="sn">4</div><div class="st">Switch to Tab 1. Camera feed appears within ~3 seconds. ✅</div></div>
+      <div class="wbx">⚠ If stuck after 15s: on Receiver tap <strong>↺ RESTART RECEIVER</strong>, then on Sender tap <strong>■ STOP</strong> → <strong>▶ START</strong>.</div>
     </div>
     <div class="sec">
-      <h3>📱 Different Devices</h3>
-      <div class="step"><div class="snum">1</div><div class="stxt"><strong>Receiver (Phone B)</strong>: Open URL in Chrome → stay on RECEIVER tab → leave it open.</div></div>
-      <div class="step"><div class="snum">2</div><div class="stxt"><strong>Sender (Phone A)</strong>: Open same URL → SENDER tab → START CAMERA → allow camera.</div></div>
-      <div class="step"><div class="snum">3</div><div class="stxt">Video appears on Phone B. Repeat for more cameras — each gets its own tile.</div></div>
-      <div class="step"><div class="snum">4</div><div class="stxt">Tap <strong>⟳ FLIP</strong> on any tile to switch that camera front/back.</div></div>
+      <h3>📱 Different Devices (10+ Cameras)</h3>
+      <div class="step"><div class="sn">1</div><div class="st"><strong>Receiver phone:</strong> Open URL → stay on RECEIVER tab → keep screen on.</div></div>
+      <div class="step"><div class="sn">2</div><div class="st"><strong>Each sender:</strong> Open same URL → SENDER tab → START CAMERA + MIC → allow both permissions.</div></div>
+      <div class="step"><div class="sn">3</div><div class="st">Each sender appears as its own tile on the receiver screen automatically.</div></div>
+      <div class="step"><div class="sn">4</div><div class="st">Tap <strong>⟳ FLIP</strong> on a tile to switch that camera front/back. Tap <strong>🎤</strong> to unmute/mute audio.</div></div>
     </div>
     <div class="sec">
       <h3>✅ Features</h3>
       <div class="fg">
-        <div class="fi"><strong>AUTO CONNECT</strong>Camera permission → auto streams. No codes.</div>
-        <div class="fi"><strong>10+ CAMERAS</strong>Each sender gets its own live tile.</div>
-        <div class="fi"><strong>FLIP CAMERA</strong>Switch front/back per camera.</div>
-        <div class="fi"><strong>PIN LOCK</strong>PIN 225400, unlocks once permanently.</div>
-        <div class="fi"><strong>AUTO RECONNECT</strong>Retries on disconnect.</div>
-        <div class="fi"><strong>LOW LATENCY</strong>Direct P2P ~300–800ms.</div>
-        <div class="fi"><strong>WORKS ON 4G</strong>Internet-based, not local network.</div>
-        <div class="fi"><strong>DAILY SLOTS</strong>ID rotates daily, no ghost conflicts.</div>
+        <div class="fi"><strong>AUTO CONNECT</strong>Grant permissions → streams automatically</div>
+        <div class="fi"><strong>10+ CAMERAS</strong>Each device gets its own live tile</div>
+        <div class="fi"><strong>AUDIO STREAM</strong>Mic streamed with camera, muted by default</div>
+        <div class="fi"><strong>FLIP CAMERA</strong>Switch front/back per camera remotely</div>
+        <div class="fi"><strong>PIN LOCK</strong>PIN 225400, unlocks once permanently</div>
+        <div class="fi"><strong>AUTO RECONNECT</strong>Retries on any disconnect</div>
+        <div class="fi"><strong>DAILY SLOTS</strong>No ghost-session ID conflicts</div>
+        <div class="fi"><strong>4G / INTERNET</strong>Works across any network</div>
       </div>
     </div>
     <div class="sec">
       <h3>⚠ Important Notes</h3>
-      <div class="wbox">
-        <strong>Keep screen ON</strong> on sender phones — Chrome pauses camera when screen locks.<br><br>
-        <strong>Use Chrome</strong> on Android for best support.<br><br>
-        <strong>HTTPS required</strong> — GitHub Pages provides this automatically.<br><br>
-        <strong>If no connection after 15s</strong>: tap ↺ RESTART on receiver, stop/restart sender.<br><br>
-        <strong>Bandwidth</strong>: each camera ≈ 1–2 Mbps. 10 cameras = 10–20 Mbps on receiver.
+      <div class="wbx">
+        <strong>Keep screen ON</strong> on sender — Chrome pauses camera when screen locks.<br><br>
+        <strong>Chrome on Android</strong> — best WebRTC support. Firefox also works.<br><br>
+        <strong>HTTPS required</strong> — GitHub Pages provides this free.<br><br>
+        <strong>Bandwidth</strong>: each camera+audio stream ≈ 1.5–2.5 Mbps. Plan accordingly.<br><br>
+        <strong>Battery</strong>: streaming drains battery fast on senders. Keep them plugged in.
       </div>
     </div>
   </div>
 </div>
 
 <div id="sb">
-  <span><span class="sd" id="sdSrv"></span>SERVER</span>
-  <span><span class="sd" id="sdCam"></span>CAMERA</span>
-  <span><span class="sd" id="sdStr"></span>STREAM</span>
+  <span><span class="dot" id="dSrv2"></span>SERVER</span>
+  <span><span class="dot" id="dCam2"></span>CAMERA</span>
+  <span><span class="dot" id="dStr2"></span>STREAM</span>
   <span id="sbIp">IP: —</span>
   <span id="sbNet">NET: —</span>
 </div>
@@ -228,28 +283,35 @@ header{border-bottom:1px solid var(--border);padding:10px 18px;display:flex;alig
 <script>
 'use strict';
 
-// ─── CONFIG ──────────────────────────────────────────────────────────────────
-const PIN     = '225400';
-const PIN_KEY = 'lc_pinok_v2';
+// ════════════════════════════════════════════════════════════════════════════
+// CONSTANTS & CONFIG
+// ════════════════════════════════════════════════════════════════════════════
+const PIN_CODE  = '225400';
+const PIN_KEY   = 'dpwed_pin_v1';
+const TX_ID_KEY = 'dpwed_txid_v1';
+const RX_ID_KEY = 'dpwed_rxid_v1';
+const RX_TS_KEY = 'dpwed_rxts_v1';
 
-// Receiver ID rotates daily — avoids PeerJS ghost-session conflicts.
-// If a slot is taken, we try up to 9 alternates (same formula on sender side).
+// Daily rotating base ID — avoids PeerJS ghost-session conflicts
 function dailyBase() {
   const d = new Date();
-  return 'lc-rx-' + d.getFullYear() + '-' + d.getMonth() + '-' + d.getDate();
+  // Zero-pad month+day so IDs don't accidentally collide across months
+  return 'dpwed-rx-' + d.getFullYear() + ('0'+(d.getMonth()+1)).slice(-2) + ('0'+d.getDate()).slice(-2);
 }
 
-// PeerJS peer options — Google STUN + Twilio STUN for better NAT traversal
-function mkOpts(id) {
+// PeerJS options with multiple STUN servers for best NAT traversal
+function mkPeerOpts(id) {
   const o = {
     config: {
       iceServers: [
         { urls: 'stun:stun.l.google.com:19302' },
         { urls: 'stun:stun1.l.google.com:19302' },
         { urls: 'stun:stun2.l.google.com:19302' },
-        { urls: 'stun:stun3.l.google.com:19302' }
+        { urls: 'stun:stun3.l.google.com:19302' },
+        { urls: 'stun:stun4.l.google.com:19302' }
       ],
-      iceCandidatePoolSize: 10
+      iceCandidatePoolSize: 10,
+      iceTransportPolicy: 'all'
     },
     debug: 0
   };
@@ -257,205 +319,306 @@ function mkOpts(id) {
   return o;
 }
 
-// ─── PIN ─────────────────────────────────────────────────────────────────────
-let pe = '';
-if (localStorage.getItem(PIN_KEY) === '1') document.getElementById('pin').classList.add('hide');
+// ════════════════════════════════════════════════════════════════════════════
+// PIN
+// ════════════════════════════════════════════════════════════════════════════
+let _pe = '';
+(function () {
+  if (localStorage.getItem(PIN_KEY) === '1') document.getElementById('pin').classList.add('hide');
+})();
 function pk(k) {
-  if (k === '') pe = pe.slice(0,-1); else { if (pe.length >= 6) return; pe += k; }
-  ud(); if (pe.length === 6) cp();
+  if (k === '') _pe = _pe.slice(0, -1);
+  else { if (_pe.length >= 6) return; _pe += k; }
+  _udp(); if (_pe.length === 6) _chkp();
 }
-function pc() { pe=''; ud(); document.getElementById('perr').textContent=''; }
-function ud() { for (let i=0;i<6;i++) document.getElementById('pd'+i).classList.toggle('on', i<pe.length); }
-function cp() {
-  if (pe===PIN) { localStorage.setItem(PIN_KEY,'1'); document.getElementById('pin').classList.add('hide'); toast('✓ Unlocked'); }
-  else { document.getElementById('perr').textContent='✕ WRONG PIN'; pe=''; ud(); setTimeout(()=>document.getElementById('perr').textContent='',1400); }
+function pc() { _pe = ''; _udp(); document.getElementById('perr').textContent = ''; }
+function _udp() { for (let i = 0; i < 6; i++) document.getElementById('pd'+i).classList.toggle('on', i < _pe.length); }
+function _chkp() {
+  if (_pe === PIN_CODE) {
+    localStorage.setItem(PIN_KEY, '1');
+    document.getElementById('pin').classList.add('hide');
+    toast('✓ Access granted');
+  } else {
+    document.getElementById('perr').textContent = '✕ WRONG PIN';
+    _pe = ''; _udp();
+    setTimeout(() => document.getElementById('perr').textContent = '', 1500);
+  }
 }
 
-// ─── UI ──────────────────────────────────────────────────────────────────────
-function pg(n) {
-  document.querySelectorAll('.page').forEach(p=>p.classList.remove('on'));
-  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));
-  document.getElementById('page'+n).classList.add('on');
-  document.getElementById('t'+n).classList.add('on');
+// ════════════════════════════════════════════════════════════════════════════
+// UI HELPERS
+// ════════════════════════════════════════════════════════════════════════════
+function showPg(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('on'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('on'));
+  document.getElementById('page' + name).classList.add('on');
+  document.getElementById('t' + name).classList.add('on');
 }
-setInterval(()=>{ document.getElementById('htime').textContent=new Date().toTimeString().slice(0,8); },1000);
-function toast(msg,err=false) {
-  const el=document.createElement('div');
-  el.className='tm'+(err?' e':''); el.textContent=msg;
+
+setInterval(() => { document.getElementById('htm').textContent = new Date().toTimeString().slice(0, 8); }, 1000);
+
+function toast(msg, err = false) {
+  const el = document.createElement('div');
+  el.className = 'tm' + (err ? ' e' : '');
+  el.textContent = msg;
   document.getElementById('toast').appendChild(el);
-  setTimeout(()=>el.remove(),4200);
-}
-function dv(id,val,cls='') {
-  const el=document.getElementById(id); if(!el) return;
-  el.textContent=val; el.className='dv'+(cls?' '+cls:'');
-}
-function dot(id,cls) { const el=document.getElementById(id); if(el) el.className='sd'+(cls?' '+cls:''); }
-function cid(s){ return s.replace(/[^a-zA-Z0-9]/g,'_'); }
-
-// ─── BLANK STREAM (for WebRTC answer handshake) ───────────────────────────────
-function blankStream() {
-  const c=document.createElement('canvas'); c.width=2; c.height=2;
-  c.getContext('2d').fillRect(0,0,2,2);
-  return c.captureStream(1);
+  setTimeout(() => { try { el.remove(); } catch(e){} }, 4500);
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
+function sv(id, val, cls = '') {
+  const el = document.getElementById(id); if (!el) return;
+  el.textContent = val;
+  el.className = 'dv' + (cls ? ' ' + cls : '');
+}
+
+function dot(id, cls) {
+  const el = document.getElementById(id); if (!el) return;
+  el.className = 'dot' + (cls ? ' ' + cls : '');
+}
+
+function cid(s) { return s.replace(/[^a-zA-Z0-9]/g, '_'); }
+
+// ════════════════════════════════════════════════════════════════════════════
 // RECEIVER
-// Tries daily slot IDs 0-9. Answers every incoming call = one camera feed.
-// ═══════════════════════════════════════════════════════════════════════════════
-let rxPeer   = null;
-let rxSlot   = 0;
-let rxCams   = new Map();
-let rxRetry  = null;
-let camN     = 0;
+// Approach:
+//   - Try to claim daily slot IDs (slot 0-9). On conflict, auto-move to next.
+//   - Answer every incoming 'call' with an audio-only silent stream.
+//     DO NOT send a video track in the answer — this prevents codec conflicts
+//     that cause the frozen video bug.
+//   - Attach incoming remote stream directly to video element.
+//   - Mute audio by default; per-tile mute toggle button.
+// ════════════════════════════════════════════════════════════════════════════
+let rxPeer  = null;
+let rxSlot  = 0;
+let rxRetry = null;
+let rxCams  = new Map(); // senderId → { label, audioMuted, audioTrack }
+let camSeq  = 0;
+
+// Create a real silent audio stream using Web Audio API.
+// This is the correct way to answer a call — gives WebRTC a real MediaStream
+// with an audio track that won't interfere with the sender's video codec.
+let _silentAudioCtx = null;
+function silentAudioStream() {
+  try {
+    if (!_silentAudioCtx) _silentAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const dest = _silentAudioCtx.createMediaStreamDestination();
+    // Connect oscillator at 0 volume — produces a real, live audio track
+    const osc = _silentAudioCtx.createOscillator();
+    const gain = _silentAudioCtx.createGain();
+    gain.gain.value = 0; // completely silent
+    osc.connect(gain);
+    gain.connect(dest);
+    osc.start();
+    return dest.stream;
+  } catch (e) {
+    // Fallback: return null → call.answer() with no stream
+    return null;
+  }
+}
 
 function rxStart() {
-  if (rxRetry) clearTimeout(rxRetry);
-  if (rxPeer)  { try{rxPeer.destroy();}catch(e){} rxPeer=null; }
-  dot('sdSrv','y');
+  if (rxRetry) { clearTimeout(rxRetry); rxRetry = null; }
+  if (rxPeer)  { try { rxPeer.destroy(); } catch(e){} rxPeer = null; }
+  dot('dSrv2', 'y');
 
-  const rxId = dailyBase() + (rxSlot > 0 ? '-s'+rxSlot : '');
-  // Save to localStorage so same-device senders skip probing
-  try { localStorage.setItem('lc_rxid', rxId); localStorage.setItem('lc_rxts', Date.now()); } catch(e){}
+  const rxId = dailyBase() + (rxSlot > 0 ? '-' + rxSlot : '');
+  // Write to localStorage so same-device sender finds us instantly (no probe needed)
+  try { localStorage.setItem(RX_ID_KEY, rxId); localStorage.setItem(RX_TS_KEY, Date.now()); } catch(e){}
 
-  rxPeer = new Peer(rxId, mkOpts());
+  rxPeer = new Peer(rxId, mkPeerOpts());
 
-  rxPeer.on('open', id => {
-    dot('sdSrv','g');
-    dv('dSig', 'RX READY ✓', 'ok');
-    toast('Receiver ready (slot ' + rxSlot + ')');
+  rxPeer.on('open', () => {
+    dot('dSrv2', 'g');
+    toast('Receiver ready — slot ' + rxSlot + ' · waiting for cameras...');
   });
 
-  // Every incoming call = a sender's camera
-  rxPeer.on('call', call => {
+  // ── Every incoming call = one sender's camera stream ────────────────────
+  rxPeer.on('call', (call) => {
     const meta  = call.metadata || {};
     const sid   = meta.sid || call.peer;
-    const label = meta.label || ('CAM-' + String(++camN).padStart(2,'0'));
+    const label = meta.label || ('CAM-' + String(++camSeq).padStart(2, '0'));
 
-    // Must answer — even with blank stream — for WebRTC to complete
-    call.answer(blankStream());
+    // ── KEY FIX: Answer with AUDIO-ONLY silent stream ───────────────────
+    // Sending NO video track in our answer prevents WebRTC from doing a
+    // symmetric video negotiation that can cause the sender's video to freeze.
+    // The sender's camera stream arrives in call.on('stream') regardless.
+    const sas = silentAudioStream();
+    if (sas) call.answer(sas);
+    else call.answer(); // PeerJS allows no-arg answer
 
-    // Create tile if new sender
-    if (!rxCams.has(sid)) {
+    // Create or reuse tile
+    const existing = rxCams.get(sid);
+    if (!existing) {
       mkCard(sid, label);
-      rxCams.set(sid, { call, facing:'environment', label });
+      rxCams.set(sid, { label, audioMuted: true });
     } else {
-      rxCams.get(sid).call = call;
-      cstat(sid,'conn');
+      setCardStat(sid, 'conn');
     }
 
-    // THIS is where the real video arrives
-    call.on('stream', stream => {
-      const vid = document.getElementById('v-'+cid(sid));
-      if (!vid) return;
-      // Detach first to avoid frozen frame bug
-      vid.srcObject = null;
-      requestAnimationFrame(() => {
-        vid.srcObject = stream;
-        const tryPlay = () => vid.play().catch(e=>{
-          // Autoplay blocked — retry once on user gesture fallback
-          vid.muted=true; vid.play().catch(()=>{});
-        });
-        if (vid.readyState >= 2) tryPlay();
-        else vid.onloadedmetadata = tryPlay;
-      });
-      cstat(sid,'live');
-      updCnt();
-      toast('📷 ' + label + ' is LIVE');
+    // ── THIS fires with the sender's live video + audio stream ───────────
+    call.on('stream', (remoteStream) => {
+      attachStream(sid, remoteStream);
     });
 
-    call.on('close', () => { cstat(sid,'off'); updCnt(); });
-    call.on('error', () => { cstat(sid,'off'); });
+    call.on('close', () => { setCardStat(sid, 'off'); updCnt(); });
+    call.on('error', (e) => { console.warn('[RX call error]', e); setCardStat(sid, 'off'); });
   });
 
-  rxPeer.on('error', err => {
-    console.warn('[RX error]', err.type);
-    dot('sdSrv','r');
+  // Accept data connections (flip commands from receiver→sender go through txPeer,
+  // but sender might also open a data channel for control messages)
+  rxPeer.on('connection', () => {});
+
+  rxPeer.on('error', (err) => {
+    console.warn('[RX error]', err.type, err.message);
+    dot('dSrv2', 'r');
     if (err.type === 'unavailable-id') {
-      // Ghost session still holds this slot — move to next
+      // Ghost session still holds this slot — move to next slot
       rxSlot = (rxSlot + 1) % 10;
-      try { localStorage.setItem('lc_rxid', dailyBase()+(rxSlot>0?'-s'+rxSlot:'')); } catch(e){}
-      rxRetry = setTimeout(rxStart, 1200);
-    } else if (err.type === 'network' || err.type === 'server-error' || err.type === 'socket-error') {
-      rxRetry = setTimeout(rxStart, 5000);
+      const nid = dailyBase() + (rxSlot > 0 ? '-' + rxSlot : '');
+      try { localStorage.setItem(RX_ID_KEY, nid); localStorage.setItem(RX_TS_KEY, Date.now()); } catch(e){}
+      rxRetry = setTimeout(rxStart, 1000);
     } else {
-      rxRetry = setTimeout(rxStart, 8000);
+      rxRetry = setTimeout(rxStart, 5000);
     }
   });
 
   rxPeer.on('disconnected', () => {
-    dot('sdSrv','y');
+    dot('dSrv2', 'y');
     rxRetry = setTimeout(() => {
       if (rxPeer && !rxPeer.destroyed) rxPeer.reconnect(); else rxStart();
     }, 4000);
   });
 }
 
-function rxRestart() {
-  rxSlot = 0; camN = 0;
-  // Clear grid
-  const grid = document.getElementById('grid');
-  grid.innerHTML = '<div class="empty"><span>📷</span>RESTARTING...<br>Senders will reconnect automatically.</div>';
-  rxCams.clear();
+function attachStream(sid, stream) {
+  const vid = document.getElementById('v-' + cid(sid));
+  if (!vid) return;
+
+  const cam = rxCams.get(sid) || {};
+
+  // ── VIDEO FREEZE FIX ─────────────────────────────────────────────────────
+  // 1. Pause and clear srcObject completely before reassigning
+  vid.pause();
+  vid.removeAttribute('src');
+  vid.srcObject = null;
+
+  // 2. Mute audio track according to stored preference (default: muted)
+  const audioTracks = stream.getAudioTracks();
+  audioTracks.forEach(t => { t.enabled = !cam.audioMuted; });
+  if (cam) cam.audioTrack = audioTracks[0] || null;
+
+  // 3. Set video element muted = true always (we control audio via track.enabled)
+  vid.muted = true;
+
+  // 4. Assign new stream and force play
+  vid.srcObject = stream;
+  vid.load();
+
+  const doPlay = () => {
+    vid.play().catch(playErr => {
+      console.warn('[RX play]', playErr.name);
+      // On NotAllowedError (autoplay blocked), try muted play
+      vid.muted = true;
+      vid.play().catch(() => {});
+    });
+  };
+
+  if (vid.readyState >= HTMLMediaElement.HAVE_METADATA) {
+    doPlay();
+  } else {
+    vid.addEventListener('loadedmetadata', doPlay, { once: true });
+  }
+
+  // 5. Update UI
+  setCardStat(sid, 'live');
   updCnt();
-  toast('Restarting receiver...');
-  rxStart();
+  const label = (rxCams.get(sid) || {}).label || sid.slice(-6);
+  toast('📷 ' + label + ' — LIVE');
+  dot('dStr2', 'g');
 }
 
 function mkCard(sid, label) {
   const id = cid(sid);
-  if (document.getElementById('card-'+id)) return;
+  if (document.getElementById('card-' + id)) return;
   const grid = document.getElementById('grid');
-  const ph = grid.querySelector('.empty'); if(ph) ph.remove();
+  const ph = grid.querySelector('.empty'); if (ph) ph.remove();
   const card = document.createElement('div');
-  card.className='card'; card.id='card-'+id;
+  card.className = 'card'; card.id = 'card-' + id;
   card.innerHTML = `
     <video id="v-${id}" autoplay playsinline muted></video>
-    <div class="chud">
-      <div class="ctop">
-        <div class="cname">${label}</div>
-        <div class="cstat conn" id="cs-${id}">CONNECTING</div>
+    <div class="cov">
+      <div class="ct">
+        <div class="cnm">${label}</div>
+        <div class="cst conn" id="cs-${id}">CONNECTING</div>
       </div>
-      <div class="cbot">
-        <div class="cmini">${sid.slice(-8).toUpperCase()}</div>
-        <button class="flipbtn" onclick="doFlip('${sid}')">⟳ FLIP</button>
+      <div class="cb">
+        <div class="cmini" id="cm-${id}">${sid.slice(-8).toUpperCase()}</div>
+        <button class="icbtn muted" id="mb-${id}" title="Unmute microphone" onclick="toggleMic('${sid}')">🔇</button>
+        <button class="flipbtn" onclick="sendFlip('${sid}')">⟳ FLIP</button>
       </div>
     </div>`;
   grid.appendChild(card);
 }
 
-function cstat(sid, s) {
-  const el=document.getElementById('cs-'+cid(sid)); if(!el) return;
-  const labels={live:'● LIVE',conn:'CONNECTING',off:'OFFLINE'};
-  el.className='cstat '+s; el.textContent=labels[s]||s.toUpperCase();
+function setCardStat(sid, s) {
+  const el = document.getElementById('cs-' + cid(sid)); if (!el) return;
+  const map = { live:'● LIVE', conn:'CONNECTING', off:'OFFLINE' };
+  el.className = 'cst ' + s; el.textContent = map[s] || s.toUpperCase();
 }
 
 function updCnt() {
-  const n=rxCams.size;
-  document.getElementById('acnt').textContent=n;
-  document.getElementById('hcams').textContent=n+' CAM';
-  const live=[...rxCams.values()].some(c=>c.call);
-  dot('sdStr', live?'g':'');
+  const n = rxCams.size;
+  document.getElementById('acnt').textContent = n;
+  document.getElementById('hcam').textContent = n + ' CAM';
 }
 
-function doFlip(sid) {
-  if (!rxPeer||!rxPeer.open) return;
-  const cam=rxCams.get(sid);
-  const nf=(cam&&cam.facing==='environment')?'user':'environment';
-  if(cam) cam.facing=nf;
-  const conn=rxPeer.connect(sid,{reliable:true});
-  conn.on('open',()=>{ conn.send({type:'flip',facing:nf}); setTimeout(()=>{ try{conn.close();}catch(e){} },3000); });
-  conn.on('error',()=>toast('Flip failed',true));
-  toast('↺ Flip sent');
+function toggleMic(sid) {
+  const cam = rxCams.get(sid); if (!cam) return;
+  cam.audioMuted = !cam.audioMuted;
+  if (cam.audioTrack) cam.audioTrack.enabled = !cam.audioMuted;
+  // Also find audio tracks from the video element's stream
+  const vid = document.getElementById('v-' + cid(sid));
+  if (vid && vid.srcObject) {
+    vid.srcObject.getAudioTracks().forEach(t => { t.enabled = !cam.audioMuted; });
+  }
+  const btn = document.getElementById('mb-' + cid(sid));
+  if (btn) {
+    btn.textContent = cam.audioMuted ? '🔇' : '🎤';
+    btn.classList.toggle('muted', cam.audioMuted);
+    btn.title = cam.audioMuted ? 'Unmute microphone' : 'Mute microphone';
+  }
+  toast(cam.audioMuted ? '🔇 Muted' : '🎤 Unmuted');
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
+function sendFlip(sid) {
+  if (!rxPeer || !rxPeer.open) return;
+  const conn = rxPeer.connect(sid, { reliable: true });
+  conn.on('open', () => {
+    conn.send({ type: 'flip' });
+    setTimeout(() => { try { conn.close(); } catch(e){} }, 3000);
+  });
+  conn.on('error', () => toast('Flip failed', true));
+  toast('↺ Flip →');
+}
+
+function rxRestart() {
+  rxSlot = 0; camSeq = 0;
+  rxCams.clear();
+  document.getElementById('grid').innerHTML = '<div class="empty"><span class="eico">📷</span>RESTARTING...<br>Senders will reconnect automatically.</div>';
+  document.getElementById('acnt').textContent = '0';
+  document.getElementById('hcam').textContent = '0 CAM';
+  dot('dStr2', '');
+  toast('Receiver restarting...');
+  rxStart();
+}
+
+// ════════════════════════════════════════════════════════════════════════════
 // SENDER
-// Connects to PeerJS. Finds receiver via:
-//  1. localStorage (instant — same device tabs)
-//  2. Probe slots 0-9 by data-connecting and checking if open
-// Then calls receiver with camera stream.
-// ═══════════════════════════════════════════════════════════════════════════════
+// - Asks for camera + microphone together
+// - Stream starts ONLY when BOTH are granted
+// - Finds receiver via localStorage (same device) or slot-probing (cross device)
+// - Calls receiver with full video+audio stream
+// ════════════════════════════════════════════════════════════════════════════
 let txPeer    = null;
 let txStream  = null;
 let txActive  = false;
@@ -463,235 +626,315 @@ let txFacing  = 'environment';
 let txUpTimer = null;
 let txUpStart = null;
 let txRetry   = null;
-let txCalls   = new Map();
-let probing   = false;
+let txCalls   = new Map(); // rxId → MediaConnection
 
 function getTxId() {
-  let id=localStorage.getItem('lc_txid');
-  if (!id) { id='lc-cam-'+Math.random().toString(36).slice(2,11); localStorage.setItem('lc_txid',id); }
+  let id = localStorage.getItem(TX_ID_KEY);
+  if (!id) {
+    id = 'dpwed-cam-' + Math.random().toString(36).slice(2, 11);
+    localStorage.setItem(TX_ID_KEY, id);
+  }
   return id;
 }
 
 async function txStart() {
   if (txActive) return;
-  txActive=true;
-  document.getElementById('bStart').disabled=true;
-  dv('dPerm','REQUESTING...','warn');
+  txActive = true;
+  document.getElementById('bStart').disabled = true;
+  sv('dPerm', 'REQUESTING CAM+MIC...', 'w');
+
   try {
+    // ── Request BOTH camera AND microphone simultaneously ────────────────
+    // Stream does NOT start unless BOTH are granted
     txStream = await navigator.mediaDevices.getUserMedia({
-      video:{facingMode:txFacing,width:{ideal:1280},height:{ideal:720},frameRate:{ideal:30}},
-      audio:false
+      video: {
+        facingMode: txFacing,
+        width:  { ideal: 1280 },
+        height: { ideal: 720 },
+        frameRate: { ideal: 30 }
+      },
+      audio: {
+        echoCancellation: true,
+        noiseSuppression: true,
+        sampleRate: 44100
+      }
     });
+
+    // Show camera preview (muted — no echo)
     document.getElementById('lv').srcObject = txStream;
-    const s = txStream.getVideoTracks()[0].getSettings();
-    dv('dPerm','GRANTED ✓','ok');
-    dv('dFace', s.facingMode==='user'?'FRONT':'BACK');
-    dv('dRes', `${s.width||'?'}×${s.height||'?'}`);
-    dv('dFps', (s.frameRate||'?')+' fps');
-    dot('sdCam','g');
-    document.getElementById('bStop').style.display='block';
-    document.getElementById('bStart').style.display='none';
-    document.getElementById('sblink').style.display='inline-block';
+
+    const vs = txStream.getVideoTracks()[0].getSettings();
+    const at = txStream.getAudioTracks()[0];
+
+    sv('dPerm', 'GRANTED ✓ (CAM+MIC)', 'ok');
+    sv('dFace', vs.facingMode === 'user' ? 'FRONT' : 'BACK');
+    sv('dRes',  `${vs.width || '?'}×${vs.height || '?'}`);
+    sv('dFps',  (vs.frameRate || '?') + ' fps');
+    sv('dAud',  at ? (at.label || 'MIC OK') : 'NO MIC', at ? 'ok' : 'e');
+
+    document.getElementById('bStop').style.display = 'block';
+    document.getElementById('bStart').style.display = 'none';
+    document.getElementById('sblink').style.display = 'inline-block';
+    dot('dCam2', 'g');
+
     if (navigator.connection) {
-      dv('dNet',(navigator.connection.effectiveType||'?').toUpperCase());
-      document.getElementById('sbNet').textContent='NET: '+(navigator.connection.effectiveType||'?');
+      const nt = navigator.connection.effectiveType || '?';
+      sv('dNet', nt.toUpperCase());
+      document.getElementById('sbNet').textContent = 'NET: ' + nt;
     }
-    txUpStart=Date.now();
-    txUpTimer=setInterval(()=>{
-      const e=Math.floor((Date.now()-txUpStart)/1000);
-      document.getElementById('dUp').textContent=[Math.floor(e/3600),Math.floor(e%3600/60),e%60].map(x=>String(x).padStart(2,'0')).join(':');
-    },1000);
-    toast('Camera started ✓');
+
+    txUpStart = Date.now();
+    txUpTimer = setInterval(() => {
+      const e = Math.floor((Date.now() - txUpStart) / 1000);
+      document.getElementById('dUp').textContent = [
+        Math.floor(e / 3600),
+        Math.floor(e % 3600 / 60),
+        e % 60
+      ].map(x => String(x).padStart(2, '0')).join(':');
+    }, 1000);
+
+    toast('✓ Camera + Mic ready — connecting...');
     txConnect();
-  } catch(err) {
-    txActive=false;
-    document.getElementById('bStart').disabled=false;
-    dv('dPerm','DENIED ✗','err');
-    toast('Camera error: '+err.message,true);
+
+  } catch (err) {
+    txActive = false;
+    document.getElementById('bStart').disabled = false;
+    // Give a clear, specific error message
+    let msg = 'Permission denied';
+    if (err.name === 'NotFoundError')      msg = 'Camera/mic not found';
+    if (err.name === 'NotAllowedError')    msg = 'Permission denied — allow both camera AND mic';
+    if (err.name === 'NotReadableError')   msg = 'Camera/mic in use by another app';
+    if (err.name === 'OverconstrainedError') msg = 'Camera not supported';
+    sv('dPerm', msg, 'e');
+    toast(msg, true);
   }
 }
 
 function txConnect() {
-  if (txRetry) clearTimeout(txRetry);
-  if (txPeer)  { try{txPeer.destroy();}catch(e){} txPeer=null; }
-  dot('sdSrv','y'); dv('dSig','CONNECTING...','warn');
+  if (txRetry) { clearTimeout(txRetry); txRetry = null; }
+  if (txPeer)  { try { txPeer.destroy(); } catch(e){} txPeer = null; }
+  sv('dSrv', 'CONNECTING...', 'w'); dot('dSrv2', 'y');
 
-  const myId=getTxId(); dv('dMyId',myId);
-  txPeer = new Peer(myId, mkOpts());
+  const myId = getTxId();
+  sv('dMid', myId);
+  txPeer = new Peer(myId, mkPeerOpts());
 
   txPeer.on('open', () => {
-    dot('sdSrv','g'); dv('dSig','CONNECTED ✓','ok');
-    toast('Peer connected — finding receiver...');
+    sv('dSrv', 'CONNECTED ✓', 'ok'); dot('dSrv2', 'g');
+    toast('Peer server connected — locating receiver...');
     findAndCall();
   });
 
-  // Receiver sends flip commands via data connection
-  txPeer.on('connection', conn=>{
-    conn.on('data', d=>{ if(d&&d.type==='flip') swCam(d.facing); });
+  // Receive flip command from receiver via data channel
+  txPeer.on('connection', (conn) => {
+    conn.on('data', (d) => {
+      if (d && d.type === 'flip') toggleFacingMode();
+    });
   });
 
-  txPeer.on('disconnected', ()=>{
-    dot('sdSrv','r'); dv('dSig','DISCONNECTED','err');
-    txRetry=setTimeout(()=>{ if(txActive){ if(txPeer&&!txPeer.destroyed) txPeer.reconnect(); else txConnect(); } },5000);
+  txPeer.on('disconnected', () => {
+    sv('dSrv', 'DISCONNECTED', 'e'); dot('dSrv2', 'r');
+    txRetry = setTimeout(() => {
+      if (!txActive) return;
+      if (txPeer && !txPeer.destroyed) txPeer.reconnect(); else txConnect();
+    }, 5000);
   });
 
-  txPeer.on('error', err=>{
-    console.warn('[TX error]',err.type);
-    if (err.type==='unavailable-id') { localStorage.removeItem('lc_txid'); }
-    dot('sdSrv','r');
-    txRetry=setTimeout(()=>{ if(txActive) txConnect(); },6000);
+  txPeer.on('error', (err) => {
+    console.warn('[TX error]', err.type);
+    if (err.type === 'unavailable-id') { localStorage.removeItem(TX_ID_KEY); }
+    dot('dSrv2', 'r');
+    txRetry = setTimeout(() => { if (txActive) txConnect(); }, 6000);
   });
 }
 
 function findAndCall() {
-  if (!txActive||!txPeer||!txPeer.open) return;
+  if (!txActive || !txPeer || !txPeer.open) return;
 
-  // ── Fast path: same device ──────────────────────────────────────────────
-  // Receiver wrote its current ID to localStorage — use it directly
+  // ── Fast path: same device, localStorage has the receiver ID ────────────
   try {
-    const stored = localStorage.getItem('lc_rxid');
-    const ts     = parseInt(localStorage.getItem('lc_rxts')||'0');
-    const age    = Date.now() - ts;
-    if (stored && age < 10 * 60 * 1000) { // accept if written within 10 min
-      callRx(stored);
+    const storedId = localStorage.getItem(RX_ID_KEY);
+    const storedTs = parseInt(localStorage.getItem(RX_TS_KEY) || '0');
+    if (storedId && (Date.now() - storedTs) < 15 * 60 * 1000) {
+      sv('dStr', 'SAME-DEVICE → ' + storedId.slice(-6).toUpperCase(), 'w');
+      callReceiver(storedId);
       return;
     }
-  } catch(e){}
+  } catch(e) {}
 
-  // ── Slow path: probe daily slots ────────────────────────────────────────
-  probeSlots(0);
+  // ── Slow path: probe daily slots ─────────────────────────────────────────
+  probeSlot(0);
 }
 
-function probeSlots(slot) {
-  if (!txActive||!txPeer||!txPeer.open) return;
+function probeSlot(slot) {
+  if (!txActive || !txPeer || !txPeer.open) return;
   if (slot >= 10) {
-    // All slots tried — wait and retry from 0
-    dv('dStr','NO RECEIVER FOUND','err');
+    sv('dStr', 'NO RECEIVER — RETRYING', 'e');
     toast('No receiver found. Is receiver tab open?', true);
-    setTimeout(()=>{ if(txActive&&!txCalls.size) probeSlots(0); }, 8000);
+    setTimeout(() => { if (txActive && txCalls.size === 0) probeSlot(0); }, 10000);
     return;
   }
 
-  const rxId = dailyBase() + (slot > 0 ? '-s'+slot : '');
-  dv('dStr','PROBING slot-'+slot,'warn');
+  const rxId = dailyBase() + (slot > 0 ? '-' + slot : '');
+  sv('dStr', 'PROBING slot-' + slot, 'w');
 
   let found = false;
   let conn;
-  try { conn = txPeer.connect(rxId, {reliable:false, serialization:'none'}); }
-  catch(e) { setTimeout(()=>probeSlots(slot+1), 500); return; }
+  try {
+    conn = txPeer.connect(rxId, { reliable: false, serialization: 'none' });
+  } catch(e) {
+    setTimeout(() => probeSlot(slot + 1), 400);
+    return;
+  }
 
-  // If PeerJS can open a data channel to this ID, the receiver is there
-  const timer = setTimeout(()=>{
-    if (!found) { try{conn.close();}catch(e){} probeSlots(slot+1); }
+  const timer = setTimeout(() => {
+    if (!found) { try { conn.close(); } catch(e){} probeSlot(slot + 1); }
   }, 3500);
 
-  conn.on('open', ()=>{
-    found=true; clearTimeout(timer);
-    try{conn.close();}catch(e){}
-    callRx(rxId);
+  conn.on('open', () => {
+    found = true; clearTimeout(timer);
+    try { conn.close(); } catch(e){}
+    callReceiver(rxId);
   });
 
-  conn.on('error', ()=>{
+  conn.on('error', () => {
     clearTimeout(timer);
-    if (!found) setTimeout(()=>probeSlots(slot+1), 300);
+    if (!found) setTimeout(() => probeSlot(slot + 1), 300);
   });
 }
 
-function callRx(rxId) {
-  if (!txPeer||!txStream) return;
-  if (txCalls.has(rxId)) return; // already calling this receiver
+function callReceiver(rxId) {
+  if (!txPeer || !txStream) return;
+  if (txCalls.has(rxId)) return;
 
-  dv('dStr','CALLING RECEIVER...','warn');
-  const myId = getTxId();
-  const label = 'CAM-'+myId.slice(-4).toUpperCase();
+  sv('dStr', 'CALLING RECEIVER...', 'w');
+  const myId  = getTxId();
+  const label = 'CAM-' + myId.slice(-4).toUpperCase();
 
   const call = txPeer.call(rxId, txStream, {
     metadata: { sid: myId, label }
   });
 
   if (!call) {
-    dv('dStr','CALL FAILED','err');
-    setTimeout(()=>{ if(txActive) findAndCall(); },5000);
+    sv('dStr', 'CALL FAILED', 'e');
+    setTimeout(() => { if (txActive) findAndCall(); }, 5000);
     return;
   }
+
   txCalls.set(rxId, call);
 
-  call.on('stream', ()=>{
-    // Receiver answered — stream is flowing
-    dv('dStr','STREAMING ✓','ok');
-    document.getElementById('sstatus').textContent='LIVE';
-    dot('sdStr','g');
-    toast('🟢 Streaming live ✓');
+  // Receiver answered — our stream is flowing
+  call.on('stream', () => {
+    sv('dStr', 'STREAMING ✓', 'ok');
+    document.getElementById('sst').textContent = 'LIVE';
+    dot('dStr2', 'g');
+    toast('🟢 Streaming live!');
   });
 
-  call.on('close', ()=>{
+  call.on('close', () => {
     txCalls.delete(rxId);
-    dv('dStr','RECONNECTING...','warn'); dot('sdStr','y');
-    document.getElementById('sstatus').textContent='RECONNECTING';
-    setTimeout(()=>{ if(txActive) findAndCall(); },5000);
+    sv('dStr', 'RECONNECTING...', 'w'); dot('dStr2', 'y');
+    document.getElementById('sst').textContent = 'RECONNECTING';
+    setTimeout(() => { if (txActive) findAndCall(); }, 5000);
   });
 
-  call.on('error', ()=>{
+  call.on('error', () => {
     txCalls.delete(rxId);
-    dv('dStr','STREAM ERR','err');
-    setTimeout(()=>{ if(txActive) findAndCall(); },5000);
+    sv('dStr', 'STREAM ERR', 'e');
+    setTimeout(() => { if (txActive) findAndCall(); }, 5000);
   });
 }
 
 function txStop() {
-  txActive=false;
-  if(txStream){txStream.getTracks().forEach(t=>t.stop());txStream=null;}
-  txCalls.forEach(c=>{try{c.close();}catch(e){}});txCalls.clear();
-  if(txPeer){try{txPeer.destroy();}catch(e){}txPeer=null;}
-  if(txUpTimer)clearInterval(txUpTimer); txUpStart=null;
-  if(txRetry)clearTimeout(txRetry);
-  document.getElementById('lv').srcObject=null;
-  document.getElementById('bStart').style.display='block'; document.getElementById('bStart').disabled=false;
-  document.getElementById('bStop').style.display='none';
-  document.getElementById('sblink').style.display='none';
-  document.getElementById('sstatus').textContent='READY';
-  dv('dPerm','—');dv('dSig','—');dv('dStr','—');
-  dot('sdCam','');dot('sdStr','');dot('sdSrv','r');
-  toast('Stopped');
+  txActive = false;
+  if (txStream)  { txStream.getTracks().forEach(t => t.stop()); txStream = null; }
+  txCalls.forEach(c => { try { c.close(); } catch(e){} }); txCalls.clear();
+  if (txPeer)    { try { txPeer.destroy(); } catch(e){} txPeer = null; }
+  if (txUpTimer) clearInterval(txUpTimer); txUpStart = null;
+  if (txRetry)   clearTimeout(txRetry); txRetry = null;
+  document.getElementById('lv').srcObject = null;
+  document.getElementById('bStart').style.display = 'block'; document.getElementById('bStart').disabled = false;
+  document.getElementById('bStop').style.display = 'none';
+  document.getElementById('sblink').style.display = 'none';
+  document.getElementById('sst').textContent = 'READY';
+  sv('dPerm','—'); sv('dSrv','—'); sv('dStr','—'); sv('dAud','—');
+  dot('dCam2',''); dot('dStr2',''); dot('dSrv2','r');
+  toast('Stream stopped');
+}
+
+// Camera flip — toggle between back and front
+function toggleFacingMode() {
+  swCam(txFacing === 'environment' ? 'user' : 'environment');
 }
 
 async function swCam(facing) {
-  txFacing=facing;
-  document.getElementById('bBack').classList.toggle('on',facing==='environment');
-  document.getElementById('bFront').classList.toggle('on',facing==='user');
+  txFacing = facing;
+  document.getElementById('bBk').classList.toggle('on', facing === 'environment');
+  document.getElementById('bFr').classList.toggle('on', facing === 'user');
   if (!txStream) return;
-  txStream.getVideoTracks().forEach(t=>t.stop());
+
+  // Stop only video tracks (keep audio track alive)
+  txStream.getVideoTracks().forEach(t => t.stop());
+
   try {
-    const ns=await navigator.mediaDevices.getUserMedia({
-      video:{facingMode:facing,width:{ideal:1280},height:{ideal:720},frameRate:{ideal:30}},audio:false
+    const newVideoStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: facing, width: { ideal: 1280 }, height: { ideal: 720 }, frameRate: { ideal: 30 } },
+      audio: false
     });
-    const nt=ns.getVideoTracks()[0];
-    txCalls.forEach(call=>{
-      if(call.peerConnection) call.peerConnection.getSenders().forEach(s=>{
-        if(s.track&&s.track.kind==='video') s.replaceTrack(nt);
-      });
+    const newVT = newVideoStream.getVideoTracks()[0];
+
+    // Replace video track in all active calls — no reconnect needed
+    txCalls.forEach(call => {
+      if (call.peerConnection) {
+        call.peerConnection.getSenders().forEach(s => {
+          if (s.track && s.track.kind === 'video') s.replaceTrack(newVT);
+        });
+      }
     });
-    txStream=ns; document.getElementById('lv').srcObject=ns;
-    const st=nt.getSettings(); dv('dFace',facing==='user'?'FRONT':'BACK'); dv('dRes',`${st.width||'?'}×${st.height||'?'}`);
+
+    // Remove old video track, add new one to existing stream
+    txStream.getVideoTracks().forEach(t => txStream.removeTrack(t));
+    txStream.addTrack(newVT);
+    document.getElementById('lv').srcObject = txStream;
+
+    const st = newVT.getSettings();
+    sv('dFace', facing === 'user' ? 'FRONT' : 'BACK');
+    sv('dRes', `${st.width || '?'}×${st.height || '?'}`);
     toast('Camera switched ✓');
-  } catch(e){ toast('Switch failed: '+e.message,true); }
+  } catch(e) { toast('Switch failed: ' + e.message, true); }
 }
 
-// ─── INIT ─────────────────────────────────────────────────────────────────────
-window.addEventListener('load', ()=>{
+// ════════════════════════════════════════════════════════════════════════════
+// INIT
+// ════════════════════════════════════════════════════════════════════════════
+window.addEventListener('load', () => {
   rxStart();
-  // Fetch public IP
-  fetch('https://api.ipify.org?format=json').then(r=>r.json()).then(d=>document.getElementById('sbIp').textContent='IP: '+d.ip).catch(()=>{});
-  if(navigator.connection){
-    document.getElementById('sbNet').textContent='NET: '+(navigator.connection.effectiveType||'?');
-    navigator.connection.addEventListener('change',()=>document.getElementById('sbNet').textContent='NET: '+(navigator.connection.effectiveType||'?'));
+
+  fetch('https://api.ipify.org?format=json')
+    .then(r => r.json())
+    .then(d => document.getElementById('sbIp').textContent = 'IP: ' + d.ip)
+    .catch(() => {});
+
+  if (navigator.connection) {
+    const nc = navigator.connection;
+    document.getElementById('sbNet').textContent = 'NET: ' + (nc.effectiveType || '?');
+    nc.addEventListener('change', () => {
+      document.getElementById('sbNet').textContent = 'NET: ' + (nc.effectiveType || '?');
+    });
   }
 });
 
-document.addEventListener('visibilitychange',()=>{
-  if(document.hidden) return;
-  if(txActive&&txPeer){ if(!txPeer.open&&!txPeer.destroyed) txPeer.reconnect(); else if(txPeer.destroyed) txConnect(); }
-  if(rxPeer){ if(!rxPeer.open&&!rxPeer.destroyed) rxPeer.reconnect(); else if(rxPeer.destroyed) rxStart(); }
+// Auto-reconnect when tab becomes visible again
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) return;
+  if (txActive && txPeer) {
+    if (!txPeer.open && !txPeer.destroyed) txPeer.reconnect();
+    else if (txPeer.destroyed) txConnect();
+  }
+  if (rxPeer) {
+    if (!rxPeer.open && !rxPeer.destroyed) rxPeer.reconnect();
+    else if (rxPeer.destroyed) rxStart();
+  }
 });
 </script>
 </body>

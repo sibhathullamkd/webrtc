@@ -2,1195 +2,696 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>LiveCam — Live Camera Monitor</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>LiveCam Monitor</title>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@400;600;700&display=swap');
-
-  :root {
-    --bg: #080c10;
-    --panel: #0d1318;
-    --border: #1a2a1a;
-    --green: #00ff88;
-    --green-dim: #00994d;
-    --red: #ff3355;
-    --yellow: #ffcc00;
-    --blue: #00aaff;
-    --text: #c8e6c8;
-    --text-dim: #4a6a4a;
-    --mono: 'Share Tech Mono', monospace;
-    --ui: 'Rajdhani', sans-serif;
-  }
-
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-
-  body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: var(--mono);
-    min-height: 100vh;
-    overflow-x: hidden;
-  }
-
-  /* Scanline overlay */
-  body::before {
-    content: '';
-    position: fixed;
-    inset: 0;
-    background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,255,136,0.015) 2px, rgba(0,255,136,0.015) 4px);
-    pointer-events: none;
-    z-index: 9999;
-  }
-
-  /* ── PIN LOCK ── */
-  #pinOverlay {
-    position: fixed; inset: 0; background: #000;
-    display: flex; flex-direction: column; align-items: center; justify-content: center;
-    z-index: 10000; gap: 24px;
-  }
-  #pinOverlay.hidden { display: none; }
-
-  .pin-logo {
-    font-family: var(--ui); font-size: 2rem; font-weight: 700;
-    color: var(--green); letter-spacing: 6px; text-transform: uppercase;
-  }
-  .pin-sub { font-size: 0.75rem; color: var(--text-dim); letter-spacing: 3px; }
-
-  .pin-dots {
-    display: flex; gap: 12px; margin: 8px 0;
-  }
-  .pin-dot {
-    width: 14px; height: 14px; border-radius: 50%;
-    border: 2px solid var(--green-dim);
-    transition: background 0.15s;
-  }
-  .pin-dot.filled { background: var(--green); border-color: var(--green); box-shadow: 0 0 8px var(--green); }
-
-  .pin-grid {
-    display: grid; grid-template-columns: repeat(3, 70px); gap: 10px;
-  }
-  .pin-btn {
-    height: 70px; background: var(--panel); border: 1px solid var(--border);
-    color: var(--text); font-family: var(--ui); font-size: 1.6rem; font-weight: 700;
-    cursor: pointer; border-radius: 4px; transition: all 0.1s;
-    position: relative; overflow: hidden;
-  }
-  .pin-btn:active { background: var(--green); color: #000; transform: scale(0.95); }
-  .pin-btn.wide { grid-column: span 2; }
-  .pin-error { color: var(--red); font-size: 0.8rem; letter-spacing: 2px; height: 20px; }
-
-  /* ── HEADER ── */
-  header {
-    border-bottom: 1px solid var(--border);
-    padding: 12px 20px;
-    display: flex; align-items: center; justify-content: space-between;
-    background: rgba(13,19,24,0.95);
-    position: sticky; top: 0; z-index: 100;
-  }
-  .brand { font-family: var(--ui); font-size: 1.4rem; font-weight: 700; color: var(--green); letter-spacing: 4px; }
-  .brand span { color: var(--text-dim); font-weight: 400; font-size: 0.75rem; display: block; letter-spacing: 2px; }
-
-  .header-status {
-    display: flex; gap: 16px; align-items: center; font-size: 0.7rem; color: var(--text-dim);
-  }
-  .blink { animation: blink 1s infinite; }
-  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.2} }
-  .dot-live { width: 8px; height: 8px; border-radius: 50%; background: var(--red); display: inline-block; margin-right: 4px; }
-
-  /* ── MODE SELECTOR ── */
-  .mode-bar {
-    display: flex; gap: 0; border-bottom: 1px solid var(--border);
-  }
-  .mode-btn {
-    flex: 1; padding: 14px; text-align: center;
-    font-family: var(--ui); font-size: 0.9rem; font-weight: 600;
-    letter-spacing: 3px; text-transform: uppercase;
-    cursor: pointer; border: none; background: var(--panel);
-    color: var(--text-dim); border-right: 1px solid var(--border);
-    transition: all 0.2s;
-  }
-  .mode-btn:last-child { border-right: none; }
-  .mode-btn.active { background: var(--bg); color: var(--green); border-bottom: 2px solid var(--green); }
-
-  /* ── PAGES ── */
-  .page { display: none; padding: 20px; }
-  .page.active { display: block; }
-
-  /* ── SENDER PAGE ── */
-  .sender-wrap {
-    display: grid; grid-template-columns: 1fr 300px; gap: 20px; max-width: 1200px; margin: 0 auto;
-  }
-  @media(max-width:768px) { .sender-wrap { grid-template-columns: 1fr; } }
-
-  .cam-preview-box {
-    background: #000; border: 1px solid var(--border); border-radius: 4px;
-    overflow: hidden; position: relative; aspect-ratio: 16/9;
-  }
-  #localVideo { width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); }
-  .cam-overlay {
-    position: absolute; top: 0; left: 0; right: 0;
-    padding: 10px 14px;
-    background: linear-gradient(to bottom, rgba(0,0,0,0.7), transparent);
-    display: flex; justify-content: space-between; align-items: flex-start;
-    pointer-events: none;
-  }
-  .cam-label { font-size: 0.7rem; color: var(--green); letter-spacing: 2px; }
-  .rec-badge {
-    display: flex; align-items: center; gap: 6px;
-    font-size: 0.65rem; color: var(--red); letter-spacing: 2px;
-  }
-
-  .diag-panel {
-    background: var(--panel); border: 1px solid var(--border); border-radius: 4px;
-    padding: 16px; display: flex; flex-direction: column; gap: 10px;
-  }
-  .diag-title {
-    font-family: var(--ui); font-size: 0.75rem; font-weight: 700;
-    letter-spacing: 4px; color: var(--green-dim); text-transform: uppercase;
-    border-bottom: 1px solid var(--border); padding-bottom: 8px; margin-bottom: 4px;
-  }
-  .diag-row {
-    display: flex; justify-content: space-between; align-items: center;
-    font-size: 0.7rem; gap: 8px;
-  }
-  .diag-key { color: var(--text-dim); letter-spacing: 1px; flex-shrink: 0; }
-  .diag-val { color: var(--text); text-align: right; word-break: break-all; }
-  .diag-val.ok { color: var(--green); }
-  .diag-val.warn { color: var(--yellow); }
-  .diag-val.err { color: var(--red); }
-
-  .btn {
-    width: 100%; padding: 14px; border: none; cursor: pointer;
-    font-family: var(--ui); font-size: 0.9rem; font-weight: 700;
-    letter-spacing: 3px; text-transform: uppercase; border-radius: 4px;
-    transition: all 0.2s; margin-top: 4px;
-  }
-  .btn-green { background: var(--green); color: #000; }
-  .btn-green:hover { box-shadow: 0 0 20px rgba(0,255,136,0.4); }
-  .btn-green:disabled { background: var(--green-dim); color: #002211; cursor: not-allowed; box-shadow: none; }
-  .btn-red { background: var(--red); color: #fff; }
-  .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text-dim); }
-  .btn-outline:hover { border-color: var(--green); color: var(--green); }
-
-  .cam-switch-row {
-    display: flex; gap: 8px;
-  }
-  .cam-switch-btn {
-    flex: 1; padding: 10px; border: 1px solid var(--border);
-    background: var(--bg); color: var(--text-dim);
-    font-family: var(--ui); font-size: 0.75rem; font-weight: 600;
-    letter-spacing: 2px; cursor: pointer; border-radius: 4px; transition: all 0.2s;
-  }
-  .cam-switch-btn.active { border-color: var(--green); color: var(--green); background: rgba(0,255,136,0.05); }
-
-  /* ── RECEIVER PAGE ── */
-  .receiver-header {
-    display: flex; justify-content: space-between; align-items: center;
-    margin-bottom: 16px;
-  }
-  .cam-count { font-size: 0.75rem; color: var(--text-dim); }
-  .cam-count span { color: var(--green); font-size: 1.1rem; font-weight: bold; }
-
-  #cameraGrid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
-    gap: 16px;
-  }
-  @media(max-width: 480px) { #cameraGrid { grid-template-columns: 1fr; } }
-
-  .cam-card {
-    background: #000; border: 1px solid var(--border); border-radius: 6px;
-    overflow: hidden; position: relative;
-  }
-  .cam-card:hover { border-color: var(--green-dim); }
-
-  .cam-card video { width: 100%; aspect-ratio: 16/9; display: block; object-fit: cover; background: #000; }
-
-  .cam-card-hud {
-    position: absolute; top: 0; left: 0; right: 0; bottom: 0; pointer-events: none;
-    display: flex; flex-direction: column; justify-content: space-between; padding: 10px;
-  }
-  .cam-card-top { display: flex; justify-content: space-between; align-items: flex-start; }
-  .cam-card-name {
-    background: rgba(0,0,0,0.7); padding: 4px 8px; border-radius: 3px;
-    font-size: 0.65rem; color: var(--green); letter-spacing: 2px; max-width: 60%;
-    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-  }
-  .cam-card-status { font-size: 0.6rem; padding: 3px 8px; border-radius: 3px; letter-spacing: 1px; }
-  .cam-card-status.live { background: rgba(255,51,85,0.8); color: #fff; }
-  .cam-card-status.connecting { background: rgba(255,204,0,0.8); color: #000; }
-  .cam-card-status.offline { background: rgba(0,0,0,0.7); color: var(--text-dim); }
-
-  .cam-card-bottom {
-    display: flex; justify-content: space-between; align-items: flex-end;
-    pointer-events: all;
-  }
-  .cam-mini-diag { font-size: 0.58rem; color: rgba(200,230,200,0.6); }
-  .cam-flip-btn {
-    background: rgba(0,0,0,0.7); border: 1px solid rgba(0,255,136,0.3);
-    color: var(--green); font-size: 0.65rem; padding: 5px 10px;
-    cursor: pointer; border-radius: 3px; letter-spacing: 1px;
-    font-family: var(--mono); transition: all 0.2s;
-  }
-  .cam-flip-btn:hover { background: rgba(0,255,136,0.15); }
-
-  .no-cameras {
-    grid-column: 1/-1; text-align: center; padding: 60px;
-    color: var(--text-dim); font-size: 0.8rem; letter-spacing: 2px;
-  }
-  .no-cameras span { display: block; font-size: 3rem; margin-bottom: 16px; opacity: 0.3; }
-
-  /* ── SETUP PAGE ── */
-  .setup-page { max-width: 800px; margin: 0 auto; }
-  .setup-section {
-    background: var(--panel); border: 1px solid var(--border); border-radius: 6px;
-    padding: 20px; margin-bottom: 16px;
-  }
-  .setup-section h3 {
-    font-family: var(--ui); font-weight: 700; letter-spacing: 3px;
-    color: var(--green); font-size: 0.9rem; margin-bottom: 16px; text-transform: uppercase;
-  }
-  .step {
-    display: flex; gap: 14px; margin-bottom: 14px; align-items: flex-start;
-  }
-  .step-num {
-    min-width: 28px; height: 28px; border-radius: 50%;
-    border: 2px solid var(--green-dim); display: flex; align-items: center; justify-content: center;
-    font-size: 0.75rem; color: var(--green); font-family: var(--ui); font-weight: 700; flex-shrink: 0;
-  }
-  .step-text { font-size: 0.78rem; color: var(--text); line-height: 1.7; }
-  .step-text strong { color: var(--green); }
-  .step-text code {
-    background: rgba(0,255,136,0.1); color: var(--green);
-    padding: 2px 6px; border-radius: 3px; font-size: 0.85em;
-  }
-
-  .warn-box {
-    background: rgba(255,204,0,0.08); border: 1px solid rgba(255,204,0,0.3);
-    border-radius: 4px; padding: 14px; font-size: 0.75rem; color: var(--yellow);
-    line-height: 1.7; margin-top: 8px;
-  }
-  .ok-box {
-    background: rgba(0,255,136,0.05); border: 1px solid rgba(0,255,136,0.2);
-    border-radius: 4px; padding: 14px; font-size: 0.75rem; color: var(--text);
-    line-height: 1.7; margin-top: 8px;
-  }
-  .feat-grid {
-    display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
-  }
-  @media(max-width:500px) { .feat-grid { grid-template-columns: 1fr; } }
-  .feat-item {
-    background: var(--bg); border: 1px solid var(--border); border-radius: 4px;
-    padding: 10px 14px; font-size: 0.72rem; color: var(--text-dim); line-height: 1.6;
-  }
-  .feat-item strong { color: var(--green); display: block; margin-bottom: 2px; font-family: var(--ui); letter-spacing: 1px; }
-
-  /* ── SCROLLBAR ── */
-  ::-webkit-scrollbar { width: 4px; } 
-  ::-webkit-scrollbar-track { background: var(--bg); }
-  ::-webkit-scrollbar-thumb { background: var(--border); }
-
-  /* ── STATUS BAR ── */
-  #statusBar {
-    position: fixed; bottom: 0; left: 0; right: 0;
-    background: var(--panel); border-top: 1px solid var(--border);
-    padding: 6px 16px; display: flex; gap: 20px; font-size: 0.65rem;
-    color: var(--text-dim); z-index: 200; flex-wrap: wrap;
-  }
-  #statusBar span { display: flex; align-items: center; gap: 6px; }
-  .sb-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--text-dim); }
-  .sb-dot.green { background: var(--green); box-shadow: 0 0 6px var(--green); }
-  .sb-dot.red { background: var(--red); }
-  .sb-dot.yellow { background: var(--yellow); }
-
-  /* notifications */
-  #toast {
-    position: fixed; top: 70px; right: 20px; z-index: 9000;
-    display: flex; flex-direction: column; gap: 8px; pointer-events: none;
-  }
-  .toast-msg {
-    background: var(--panel); border: 1px solid var(--green-dim);
-    padding: 10px 16px; border-radius: 4px; font-size: 0.72rem;
-    color: var(--text); max-width: 280px; animation: slideIn 0.3s ease, fadeOut 0.5s ease 3.5s forwards;
-  }
-  .toast-msg.err { border-color: var(--red); }
-  @keyframes slideIn { from{transform:translateX(40px);opacity:0} to{transform:translateX(0);opacity:1} }
-  @keyframes fadeOut { to{opacity:0;transform:translateX(20px)} }
-
-  /* server URL input */
-  .server-input-row {
-    display: flex; gap: 8px; margin-bottom: 12px;
-  }
-  .server-input {
-    flex: 1; background: var(--bg); border: 1px solid var(--border);
-    color: var(--text); padding: 10px 12px; font-family: var(--mono);
-    font-size: 0.8rem; border-radius: 4px; outline: none;
-  }
-  .server-input:focus { border-color: var(--green); }
-  .btn-sm {
-    padding: 8px 14px; border: none; cursor: pointer; border-radius: 4px;
-    font-family: var(--ui); font-size: 0.75rem; font-weight: 700; letter-spacing: 1px;
-  }
-  .btn-sm-green { background: var(--green); color: #000; }
-  .server-note { font-size: 0.68rem; color: var(--text-dim); line-height: 1.6; }
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@400;600;700&display=swap');
+:root{--bg:#080c10;--panel:#0d1318;--border:#1a2a1a;--green:#00ff88;--gdim:#00994d;--red:#ff3355;--yellow:#ffcc00;--text:#c8e6c8;--tdim:#4a6a4a;--mono:'Share Tech Mono',monospace;--ui:'Rajdhani',sans-serif}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:var(--mono);min-height:100vh;overflow-x:hidden}
+body::before{content:'';position:fixed;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,255,136,.012) 2px,rgba(0,255,136,.012) 4px);pointer-events:none;z-index:9999}
+#pin{position:fixed;inset:0;background:#000;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:10000;gap:20px}
+#pin.hide{display:none}
+.plogo{font-family:var(--ui);font-size:2rem;font-weight:700;color:var(--green);letter-spacing:6px}
+.psub{font-size:.7rem;color:var(--tdim);letter-spacing:3px}
+.pdots{display:flex;gap:12px}
+.pdot{width:14px;height:14px;border-radius:50%;border:2px solid var(--gdim);transition:.15s}
+.pdot.on{background:var(--green);border-color:var(--green);box-shadow:0 0 8px var(--green)}
+.pgrid{display:grid;grid-template-columns:repeat(3,68px);gap:8px}
+.pbtn{height:68px;background:var(--panel);border:1px solid var(--border);color:var(--text);font-family:var(--ui);font-size:1.5rem;font-weight:700;cursor:pointer;border-radius:4px;transition:.1s}
+.pbtn:active{background:var(--green);color:#000;transform:scale(.95)}
+.perr{color:var(--red);font-size:.75rem;letter-spacing:2px;height:18px;text-align:center}
+header{border-bottom:1px solid var(--border);padding:10px 18px;display:flex;align-items:center;justify-content:space-between;background:rgba(13,19,24,.97);position:sticky;top:0;z-index:100}
+.brand{font-family:var(--ui);font-size:1.3rem;font-weight:700;color:var(--green);letter-spacing:4px}
+.brand small{color:var(--tdim);font-weight:400;font-size:.65rem;display:block;letter-spacing:2px}
+.hstat{display:flex;gap:14px;align-items:center;font-size:.68rem;color:var(--tdim)}
+.blink{animation:bl 1s infinite}@keyframes bl{0%,100%{opacity:1}50%{opacity:.15}}
+.rdot{width:7px;height:7px;border-radius:50%;background:var(--red);display:inline-block;margin-right:3px}
+.tabs{display:flex;border-bottom:1px solid var(--border)}
+.tab{flex:1;padding:13px;text-align:center;font-family:var(--ui);font-size:.85rem;font-weight:600;letter-spacing:3px;text-transform:uppercase;cursor:pointer;border:none;background:var(--panel);color:var(--tdim);border-right:1px solid var(--border);transition:.2s}
+.tab:last-child{border-right:none}.tab.on{background:var(--bg);color:var(--green);border-bottom:2px solid var(--green)}
+.page{display:none;padding:16px}.page.on{display:block}
+.swrap{display:grid;grid-template-columns:1fr 290px;gap:18px;max-width:1100px;margin:0 auto}
+@media(max-width:720px){.swrap{grid-template-columns:1fr}}
+.cambox{background:#000;border:1px solid var(--border);border-radius:4px;overflow:hidden;position:relative;aspect-ratio:16/9}
+#lv{width:100%;height:100%;object-fit:cover}
+.camhud{position:absolute;top:0;left:0;right:0;padding:9px 13px;background:linear-gradient(to bottom,rgba(0,0,0,.7),transparent);display:flex;justify-content:space-between;pointer-events:none}
+.clabel{font-size:.68rem;color:var(--green);letter-spacing:2px}
+.cbadge{display:flex;align-items:center;gap:5px;font-size:.62rem;color:var(--red);letter-spacing:2px}
+.cswitch{display:flex;gap:8px;margin-top:10px}
+.csw{flex:1;padding:10px;border:1px solid var(--border);background:var(--bg);color:var(--tdim);font-family:var(--ui);font-size:.72rem;font-weight:600;letter-spacing:2px;cursor:pointer;border-radius:4px;transition:.2s}
+.csw.on{border-color:var(--green);color:var(--green);background:rgba(0,255,136,.05)}
+.diag{background:var(--panel);border:1px solid var(--border);border-radius:4px;padding:14px;display:flex;flex-direction:column;gap:9px}
+.dtitle{font-family:var(--ui);font-size:.72rem;font-weight:700;letter-spacing:4px;color:var(--gdim);text-transform:uppercase;border-bottom:1px solid var(--border);padding-bottom:7px;margin-bottom:2px}
+.drow{display:flex;justify-content:space-between;font-size:.68rem;gap:8px}.dk{color:var(--tdim);flex-shrink:0}
+.dv{color:var(--text);text-align:right;word-break:break-all}.dv.ok{color:var(--green)}.dv.warn{color:var(--yellow)}.dv.err{color:var(--red)}
+.btn{width:100%;padding:13px;border:none;cursor:pointer;font-family:var(--ui);font-size:.88rem;font-weight:700;letter-spacing:3px;text-transform:uppercase;border-radius:4px;transition:.2s;margin-top:2px}
+.gbtn{background:var(--green);color:#000}.gbtn:hover{box-shadow:0 0 18px rgba(0,255,136,.4)}.gbtn:disabled{background:var(--gdim);color:#001;cursor:not-allowed;box-shadow:none}
+.rbtn{background:var(--red);color:#fff}
+.rxhdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+.camcnt{font-size:.72rem;color:var(--tdim)}.camcnt b{color:var(--green);font-size:1.1rem}
+.smbtn{padding:9px 16px;border:none;cursor:pointer;border-radius:4px;font-family:var(--ui);font-size:.72rem;font-weight:700;letter-spacing:2px;background:var(--green);color:#000}
+#grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px}
+@media(max-width:440px){#grid{grid-template-columns:1fr}}
+.card{background:#000;border:1px solid var(--border);border-radius:5px;overflow:hidden;position:relative}
+.card:hover{border-color:var(--gdim)}.card video{width:100%;aspect-ratio:16/9;display:block;object-fit:cover;background:#000}
+.chud{position:absolute;inset:0;pointer-events:none;display:flex;flex-direction:column;justify-content:space-between;padding:9px}
+.ctop{display:flex;justify-content:space-between;align-items:flex-start}
+.cname{background:rgba(0,0,0,.75);padding:3px 8px;border-radius:3px;font-size:.62rem;color:var(--green);letter-spacing:2px;max-width:55%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cstat{font-size:.58rem;padding:3px 7px;border-radius:3px;letter-spacing:1px}
+.cstat.live{background:rgba(255,51,85,.85);color:#fff}.cstat.conn{background:rgba(255,204,0,.85);color:#000}.cstat.off{background:rgba(0,0,0,.75);color:var(--tdim)}
+.cbot{display:flex;justify-content:space-between;align-items:flex-end;pointer-events:all}
+.cmini{font-size:.55rem;color:rgba(200,230,200,.55)}
+.flipbtn{background:rgba(0,0,0,.75);border:1px solid rgba(0,255,136,.35);color:var(--green);font-size:.62rem;padding:5px 9px;cursor:pointer;border-radius:3px;font-family:var(--mono);transition:.2s}
+.flipbtn:hover{background:rgba(0,255,136,.12)}
+.empty{grid-column:1/-1;text-align:center;padding:50px 20px;color:var(--tdim);font-size:.78rem;letter-spacing:2px;line-height:2.2}
+.empty span{display:block;font-size:2.5rem;opacity:.25;margin-bottom:12px}
+#sb{position:fixed;bottom:0;left:0;right:0;background:var(--panel);border-top:1px solid var(--border);padding:5px 14px;display:flex;gap:16px;font-size:.62rem;color:var(--tdim);z-index:200;flex-wrap:wrap}
+#sb span{display:flex;align-items:center;gap:5px}
+.sd{width:6px;height:6px;border-radius:50%;background:var(--tdim)}.sd.g{background:var(--green);box-shadow:0 0 5px var(--green)}.sd.r{background:var(--red)}.sd.y{background:var(--yellow)}
+#toast{position:fixed;top:65px;right:14px;z-index:8000;display:flex;flex-direction:column;gap:7px;pointer-events:none}
+.tm{background:var(--panel);border:1px solid var(--gdim);padding:9px 14px;border-radius:4px;font-size:.7rem;color:var(--text);max-width:260px;animation:sin .3s ease,fout .4s ease 3.6s forwards}
+.tm.e{border-color:var(--red)}@keyframes sin{from{transform:translateX(30px);opacity:0}to{transform:none;opacity:1}}@keyframes fout{to{opacity:0;transform:translateX(20px)}}
+.setup{max-width:760px;margin:0 auto}.sec{background:var(--panel);border:1px solid var(--border);border-radius:5px;padding:18px;margin-bottom:14px}
+.sec h3{font-family:var(--ui);font-weight:700;letter-spacing:3px;color:var(--green);font-size:.88rem;margin-bottom:14px;text-transform:uppercase}
+.step{display:flex;gap:12px;margin-bottom:12px;align-items:flex-start}
+.snum{min-width:26px;height:26px;border-radius:50%;border:2px solid var(--gdim);display:flex;align-items:center;justify-content:center;font-size:.72rem;color:var(--green);font-family:var(--ui);font-weight:700;flex-shrink:0}
+.stxt{font-size:.76rem;color:var(--text);line-height:1.75}.stxt strong{color:var(--green)}.stxt code{background:rgba(0,255,136,.1);color:var(--green);padding:1px 5px;border-radius:3px}
+.wbox{background:rgba(255,204,0,.07);border:1px solid rgba(255,204,0,.3);border-radius:4px;padding:13px;font-size:.73rem;color:var(--yellow);line-height:1.8;margin-top:6px}
+.obox{background:rgba(0,255,136,.05);border:1px solid rgba(0,255,136,.2);border-radius:4px;padding:13px;font-size:.73rem;color:var(--text);line-height:1.8;margin-top:6px}
+.fg{display:grid;grid-template-columns:1fr 1fr;gap:9px}@media(max-width:480px){.fg{grid-template-columns:1fr}}
+.fi{background:var(--bg);border:1px solid var(--border);border-radius:4px;padding:9px 13px;font-size:.7rem;color:var(--tdim);line-height:1.6}
+.fi strong{color:var(--green);display:block;margin-bottom:2px;font-family:var(--ui);letter-spacing:1px}
+::-webkit-scrollbar{width:3px}::-webkit-scrollbar-track{background:var(--bg)}::-webkit-scrollbar-thumb{background:var(--border)}
 </style>
 </head>
 <body>
 
-<!-- PIN LOCK -->
-<div id="pinOverlay">
-  <div class="pin-logo">LIVECAM</div>
-  <div class="pin-sub">SECURE ACCESS — ENTER PIN</div>
-  <div class="pin-dots">
-    <div class="pin-dot" id="pd0"></div>
-    <div class="pin-dot" id="pd1"></div>
-    <div class="pin-dot" id="pd2"></div>
-    <div class="pin-dot" id="pd3"></div>
-    <div class="pin-dot" id="pd4"></div>
-    <div class="pin-dot" id="pd5"></div>
+<div id="pin">
+  <div class="plogo">LIVECAM</div>
+  <div class="psub">ENTER PIN TO ACCESS</div>
+  <div class="pdots">
+    <div class="pdot" id="pd0"></div><div class="pdot" id="pd1"></div><div class="pdot" id="pd2"></div>
+    <div class="pdot" id="pd3"></div><div class="pdot" id="pd4"></div><div class="pdot" id="pd5"></div>
   </div>
-  <div class="pin-error" id="pinError"></div>
-  <div class="pin-grid">
-    <button class="pin-btn" onclick="pinKey('1')">1</button>
-    <button class="pin-btn" onclick="pinKey('2')">2</button>
-    <button class="pin-btn" onclick="pinKey('3')">3</button>
-    <button class="pin-btn" onclick="pinKey('4')">4</button>
-    <button class="pin-btn" onclick="pinKey('5')">5</button>
-    <button class="pin-btn" onclick="pinKey('6')">6</button>
-    <button class="pin-btn" onclick="pinKey('7')">7</button>
-    <button class="pin-btn" onclick="pinKey('8')">8</button>
-    <button class="pin-btn" onclick="pinKey('9')">9</button>
-    <button class="pin-btn btn-outline" onclick="pinKey('')" style="color:var(--text-dim)">⌫</button>
-    <button class="pin-btn" onclick="pinKey('0')">0</button>
-    <button class="pin-btn btn-outline" onclick="pinClear()" style="color:var(--red)">CLR</button>
+  <div class="perr" id="perr"></div>
+  <div class="pgrid">
+    <button class="pbtn" onclick="pk('1')">1</button><button class="pbtn" onclick="pk('2')">2</button><button class="pbtn" onclick="pk('3')">3</button>
+    <button class="pbtn" onclick="pk('4')">4</button><button class="pbtn" onclick="pk('5')">5</button><button class="pbtn" onclick="pk('6')">6</button>
+    <button class="pbtn" onclick="pk('7')">7</button><button class="pbtn" onclick="pk('8')">8</button><button class="pbtn" onclick="pk('9')">9</button>
+    <button class="pbtn" style="color:var(--tdim)" onclick="pk('')">⌫</button>
+    <button class="pbtn" onclick="pk('0')">0</button>
+    <button class="pbtn" style="color:var(--red)" onclick="pc()">CLR</button>
   </div>
 </div>
 
-<!-- TOAST -->
 <div id="toast"></div>
 
 <header>
-  <div class="brand">LIVECAM <span>REMOTE MONITOR SYSTEM v1.0</span></div>
-  <div class="header-status">
-    <span><span class="dot-live blink"></span>LIVE</span>
-    <span id="hdrTime">--:--:--</span>
-    <span id="hdrCams">0 CAM</span>
+  <div class="brand">LIVECAM <small>REMOTE MONITOR v2.0</small></div>
+  <div class="hstat">
+    <span><span class="rdot blink"></span>LIVE</span>
+    <span id="htime">--:--:--</span>
+    <span id="hcams">0 CAM</span>
   </div>
 </header>
 
-<div class="mode-bar">
-  <button class="mode-btn active" onclick="showPage('receiver')" id="btnReceiver">📺 RECEIVER</button>
-  <button class="mode-btn" onclick="showPage('sender')" id="btnSender">📷 SENDER</button>
-  <button class="mode-btn" onclick="showPage('setup')" id="btnSetup">⚙ SETUP</button>
+<div class="tabs">
+  <button class="tab on" onclick="pg('Rx')" id="tRx">📺 RECEIVER</button>
+  <button class="tab" onclick="pg('Tx')" id="tTx">📷 SENDER</button>
+  <button class="tab" onclick="pg('Setup')" id="tSetup">⚙ SETUP</button>
 </div>
 
-<!-- ══ RECEIVER PAGE ══ -->
-<div class="page active" id="pageReceiver">
-  <div class="receiver-header">
-    <div>
-      <div class="diag-title">CAMERA FEEDS</div>
-      <div class="cam-count">Active streams: <span id="activeCount">0</span></div>
-    </div>
-    <button class="btn-sm btn-sm-green" onclick="refreshReceiverConnections()" style="border-radius:4px">↺ REFRESH</button>
+<div class="page on" id="pageRx">
+  <div class="rxhdr">
+    <div><div class="dtitle">CAMERA FEEDS</div><div class="camcnt">Active: <b id="acnt">0</b></div></div>
+    <button class="smbtn" onclick="rxRestart()">↺ RESTART</button>
   </div>
-  <div id="cameraGrid">
-    <div class="no-cameras">
-      <span>📷</span>
-      WAITING FOR CAMERA CONNECTIONS...<br><br>
-      Open this page on sender devices,<br>switch to <strong style="color:var(--green)">SENDER</strong> tab,<br>and allow camera permission.
+  <div id="grid">
+    <div class="empty"><span>📷</span>
+      WAITING FOR CAMERAS...<br>
+      On sender: open same URL → <strong style="color:var(--green)">SENDER tab</strong> → START CAMERA
     </div>
   </div>
 </div>
 
-<!-- ══ SENDER PAGE ══ -->
-<div class="page" id="pageSender">
-  <div class="sender-wrap">
+<div class="page" id="pageTx">
+  <div class="swrap">
     <div>
-      <div class="cam-preview-box">
-        <video id="localVideo" autoplay playsinline muted></video>
-        <div class="cam-overlay">
-          <div class="cam-label" id="senderCamLabel">◉ PREVIEW</div>
-          <div class="rec-badge"><span class="dot-live blink" id="senderBlink" style="display:none"></span><span id="senderStatusLabel">READY</span></div>
+      <div class="cambox">
+        <video id="lv" autoplay playsinline muted></video>
+        <div class="camhud">
+          <div class="clabel">◉ PREVIEW</div>
+          <div class="cbadge"><span class="rdot blink" id="sblink" style="display:none"></span><span id="sstatus">READY</span></div>
         </div>
       </div>
-      <br>
-      <div class="cam-switch-row">
-        <button class="cam-switch-btn active" id="btnBack" onclick="switchCamera('back')">⬛ BACK CAM</button>
-        <button class="cam-switch-btn" id="btnFront" onclick="switchCamera('front')">🤳 FRONT CAM</button>
+      <div class="cswitch">
+        <button class="csw on" id="bBack" onclick="swCam('environment')">⬛ BACK</button>
+        <button class="csw" id="bFront" onclick="swCam('user')">🤳 FRONT</button>
       </div>
     </div>
-    <div class="diag-panel">
-      <div class="diag-title">DIAGNOSTICS</div>
-      <div class="diag-row"><span class="diag-key">CAMERA PERM</span><span class="diag-val" id="dPermission">—</span></div>
-      <div class="diag-row"><span class="diag-key">CAMERA FACING</span><span class="diag-val" id="dFacing">—</span></div>
-      <div class="diag-row"><span class="diag-key">RESOLUTION</span><span class="diag-val" id="dResolution">—</span></div>
-      <div class="diag-row"><span class="diag-key">FPS</span><span class="diag-val" id="dFps">—</span></div>
-      <div class="diag-row"><span class="diag-key">SIGNAL SERVER</span><span class="diag-val" id="dServer">—</span></div>
-      <div class="diag-row"><span class="diag-key">CONNECTION</span><span class="diag-val" id="dConn">—</span></div>
-      <div class="diag-row"><span class="diag-key">STREAM ID</span><span class="diag-val" id="dStreamId" style="font-size:0.6rem">—</span></div>
-      <div class="diag-row"><span class="diag-key">NETWORK TYPE</span><span class="diag-val" id="dNetType">—</span></div>
-      <div class="diag-row"><span class="diag-key">UPTIME</span><span class="diag-val" id="dUptime">00:00:00</span></div>
-
-      <hr style="border-color:var(--border); margin: 6px 0">
-
-      <div class="server-input-row">
-        <input class="server-input" id="sigServerInput" placeholder="Signaling server URL" value="">
-        <button class="btn-sm btn-sm-green" onclick="saveServer()">SET</button>
-      </div>
-      <div class="server-note">Enter your signaling server URL (see Setup tab). Free option: use PeerJS cloud or your own server.</div>
-
-      <button class="btn btn-green" id="btnStartSender" onclick="startSender()">▶ START CAMERA</button>
-      <button class="btn btn-red" id="btnStopSender" onclick="stopSender()" style="display:none; margin-top:8px">■ STOP</button>
+    <div class="diag">
+      <div class="dtitle">DIAGNOSTICS</div>
+      <div class="drow"><span class="dk">CAM PERMISSION</span><span class="dv" id="dPerm">—</span></div>
+      <div class="drow"><span class="dk">FACING</span><span class="dv" id="dFace">—</span></div>
+      <div class="drow"><span class="dk">RESOLUTION</span><span class="dv" id="dRes">—</span></div>
+      <div class="drow"><span class="dk">FPS</span><span class="dv" id="dFps">—</span></div>
+      <div class="drow"><span class="dk">MY ID</span><span class="dv" id="dMyId" style="font-size:.58rem">—</span></div>
+      <div class="drow"><span class="dk">SERVER</span><span class="dv" id="dSig">—</span></div>
+      <div class="drow"><span class="dk">STREAM</span><span class="dv" id="dStr">—</span></div>
+      <div class="drow"><span class="dk">NETWORK</span><span class="dv" id="dNet">—</span></div>
+      <div class="drow"><span class="dk">UPTIME</span><span class="dv" id="dUp">00:00:00</span></div>
+      <hr style="border-color:var(--border);margin:4px 0">
+      <button class="btn gbtn" id="bStart" onclick="txStart()">▶ START CAMERA</button>
+      <button class="btn rbtn" id="bStop" onclick="txStop()" style="display:none;margin-top:6px">■ STOP</button>
     </div>
   </div>
 </div>
 
-<!-- ══ SETUP PAGE ══ -->
 <div class="page" id="pageSetup">
-  <div class="setup-page">
-
-    <div class="setup-section">
-      <h3>🚀 How It Works</h3>
-      <div class="ok-box">
-        This app uses <strong>WebRTC</strong> — the same technology used by Google Meet and WhatsApp video calls — to stream live video directly from sender phones to your receiver screen, peer-to-peer over the internet. A small "signaling server" is needed to introduce devices to each other (but video goes directly between devices for lowest latency).
+  <div class="setup">
+    <div class="sec">
+      <h3>🔧 How It Works</h3>
+      <div class="obox">
+        Uses <strong>WebRTC</strong> (direct peer-to-peer video) via PeerJS. The receiver holds a daily-rotating peer ID slot. Senders find it automatically — no codes. Works over internet from any device on any network including 4G/5G.
       </div>
     </div>
-
-    <div class="setup-section">
-      <h3>⚡ Quickest Free Setup (PeerJS Cloud)</h3>
-      <div class="step"><div class="step-num">1</div><div class="step-text">
-        <strong>No server needed for testing!</strong> This app uses PeerJS's free public cloud server by default. Just open this HTML file in a browser on any device.
-      </div></div>
-      <div class="step"><div class="step-num">2</div><div class="step-text">
-        On your <strong>receiver phone (Phone B)</strong>: Open this file in Chrome, tap <strong>RECEIVER</strong> tab. Leave it open.
-      </div></div>
-      <div class="step"><div class="step-num">3</div><div class="step-text">
-        On your <strong>sender phone (Phone A)</strong>: Open this file in Chrome, tap <strong>SENDER</strong> tab, then tap <strong>▶ START CAMERA</strong>.
-      </div></div>
-      <div class="step"><div class="step-num">4</div><div class="step-text">
-        When Chrome asks for camera permission — tap <strong>Allow</strong>. The stream connects automatically. No codes needed.
-      </div></div>
-      <div class="step"><div class="step-num">5</div><div class="step-text">
-        On the receiver screen, <strong>the camera feed appears automatically</strong> within seconds. You can switch front/back camera using the button on each feed.
-      </div></div>
-      <div class="warn-box">
-        ⚠ The PeerJS free server may be slow or unavailable at times. For reliable 24/7 use, host your own signaling server (see below).
-      </div>
+    <div class="sec">
+      <h3>⚡ Same Device (2 Chrome tabs)</h3>
+      <div class="step"><div class="snum">1</div><div class="stxt">Open the URL in Chrome → <strong>Tab 1</strong> → stays on <strong>RECEIVER</strong> tab.</div></div>
+      <div class="step"><div class="snum">2</div><div class="stxt">Open a new Chrome tab → same URL → <strong>SENDER tab</strong> → tap <strong>▶ START CAMERA</strong> → allow permission.</div></div>
+      <div class="step"><div class="snum">3</div><div class="stxt">Switch to Tab 1. Camera appears within ~3 seconds. ✅</div></div>
+      <div class="wbox">⚠ If stuck: on Receiver tab tap <strong>↺ RESTART</strong>, then on Sender tab tap <strong>■ STOP</strong> then <strong>▶ START CAMERA</strong> again.</div>
     </div>
-
-    <div class="setup-section">
-      <h3>🌐 Host Your Own Signaling Server (Recommended)</h3>
-      <div class="step"><div class="step-num">1</div><div class="step-text">
-        Get a free server: <strong>Render.com</strong>, <strong>Railway.app</strong>, or <strong>Glitch.com</strong> all offer free Node.js hosting.
-      </div></div>
-      <div class="step"><div class="step-num">2</div><div class="step-text">
-        Create a new Node.js project and paste this <code>server.js</code>:
-        <br><br>
-        <code style="display:block;background:rgba(0,0,0,0.4);padding:12px;border-radius:4px;line-height:1.8;white-space:pre-wrap">const { PeerServer } = require('peer');
-const server = PeerServer({ port: process.env.PORT || 9000, path: '/livecam' });
-console.log('Signaling server running');</code>
-      </div></div>
-      <div class="step"><div class="step-num">3</div><div class="step-text">
-        Add <code>package.json</code>:
-        <br><br>
-        <code style="display:block;background:rgba(0,0,0,0.4);padding:12px;border-radius:4px;line-height:1.8">{"name":"livecam","scripts":{"start":"node server.js"},"dependencies":{"peer":"^0.7.0"}}</code>
-      </div></div>
-      <div class="step"><div class="step-num">4</div><div class="step-text">
-        Deploy to Render/Railway. Get your URL like <code>https://mylivecam.onrender.com</code>.
-      </div></div>
-      <div class="step"><div class="step-num">5</div><div class="step-text">
-        In the <strong>SENDER tab</strong>, enter your server URL in the input box and tap <strong>SET</strong>. Done!
-      </div></div>
+    <div class="sec">
+      <h3>📱 Different Devices</h3>
+      <div class="step"><div class="snum">1</div><div class="stxt"><strong>Receiver (Phone B)</strong>: Open URL in Chrome → stay on RECEIVER tab → leave it open.</div></div>
+      <div class="step"><div class="snum">2</div><div class="stxt"><strong>Sender (Phone A)</strong>: Open same URL → SENDER tab → START CAMERA → allow camera.</div></div>
+      <div class="step"><div class="snum">3</div><div class="stxt">Video appears on Phone B. Repeat for more cameras — each gets its own tile.</div></div>
+      <div class="step"><div class="snum">4</div><div class="stxt">Tap <strong>⟳ FLIP</strong> on any tile to switch that camera front/back.</div></div>
     </div>
-
-    <div class="setup-section">
-      <h3>📱 How to Share This App on Internet</h3>
-      <div class="step"><div class="step-num">1</div><div class="step-text">
-        Upload <code>livecam.html</code> to <strong>Netlify Drop</strong> (netlify.com/drop) — drag & drop, get a public URL in 30 seconds. Free forever.
-      </div></div>
-      <div class="step"><div class="step-num">2</div><div class="step-text">
-        Or use <strong>GitHub Pages</strong>: Create a repo, upload the file, enable Pages. Get a URL like <code>yourusername.github.io/livecam</code>.
-      </div></div>
-      <div class="step"><div class="step-num">3</div><div class="step-text">
-        Open the URL on all your phones. <strong>HTTPS is required</strong> for camera access — both Netlify and GitHub Pages give HTTPS free.
-      </div></div>
-    </div>
-
-    <div class="setup-section">
+    <div class="sec">
       <h3>✅ Features</h3>
-      <div class="feat-grid">
-        <div class="feat-item"><strong>AUTO CONNECT</strong>Once camera permission is granted, stream starts automatically — no codes.</div>
-        <div class="feat-item"><strong>MULTI CAMERA</strong>Up to 10+ cameras simultaneously. Each gets its own feed tile.</div>
-        <div class="feat-item"><strong>CAMERA FLIP</strong>Tap the flip button on any feed to switch front/back camera remotely.</div>
-        <div class="feat-item"><strong>PIN LOCK</strong>Receiver locked with PIN 225400. Unlock once, stays unlocked.</div>
-        <div class="feat-item"><strong>AUTO RECONNECT</strong>If connection drops, sender keeps retrying every 5 seconds.</div>
-        <div class="feat-item"><strong>DIAGNOSTICS</strong>Live stats: permission, resolution, FPS, network, uptime per camera.</div>
-        <div class="feat-item"><strong>LOW LATENCY</strong>Direct P2P WebRTC — typically under 300ms on good connections.</div>
-        <div class="feat-item"><strong>HD QUALITY</strong>720p default, upgradeable to 1080p with good bandwidth.</div>
+      <div class="fg">
+        <div class="fi"><strong>AUTO CONNECT</strong>Camera permission → auto streams. No codes.</div>
+        <div class="fi"><strong>10+ CAMERAS</strong>Each sender gets its own live tile.</div>
+        <div class="fi"><strong>FLIP CAMERA</strong>Switch front/back per camera.</div>
+        <div class="fi"><strong>PIN LOCK</strong>PIN 225400, unlocks once permanently.</div>
+        <div class="fi"><strong>AUTO RECONNECT</strong>Retries on disconnect.</div>
+        <div class="fi"><strong>LOW LATENCY</strong>Direct P2P ~300–800ms.</div>
+        <div class="fi"><strong>WORKS ON 4G</strong>Internet-based, not local network.</div>
+        <div class="fi"><strong>DAILY SLOTS</strong>ID rotates daily, no ghost conflicts.</div>
       </div>
     </div>
-
-    <div class="setup-section">
-      <h3>⚠ Important Notes & Limitations</h3>
-      <div class="warn-box">
-        <strong>HTTPS Required:</strong> Camera permission only works on HTTPS pages (or localhost). Must host on Netlify/GitHub Pages — not local file://<br><br>
-        <strong>Same Page on All Devices:</strong> Every device (sender and receiver) must open the same URL.<br><br>
-        <strong>Bandwidth:</strong> Each camera uses ~1-3 Mbps. 10 cameras = 10-30 Mbps on the receiver's connection.<br><br>
-        <strong>Battery Drain:</strong> Streaming video drains battery quickly on sender phones. Keep them plugged in.<br><br>
-        <strong>Mobile Chrome:</strong> Use Chrome on Android. Safari on iOS may have limitations.<br><br>
-        <strong>Background:</strong> On mobile, browsers may pause when the screen locks. Keep screens on while streaming.<br><br>
-        <strong>PeerJS Free Limit:</strong> PeerJS cloud has connection limits. Self-host for reliable use.
+    <div class="sec">
+      <h3>⚠ Important Notes</h3>
+      <div class="wbox">
+        <strong>Keep screen ON</strong> on sender phones — Chrome pauses camera when screen locks.<br><br>
+        <strong>Use Chrome</strong> on Android for best support.<br><br>
+        <strong>HTTPS required</strong> — GitHub Pages provides this automatically.<br><br>
+        <strong>If no connection after 15s</strong>: tap ↺ RESTART on receiver, stop/restart sender.<br><br>
+        <strong>Bandwidth</strong>: each camera ≈ 1–2 Mbps. 10 cameras = 10–20 Mbps on receiver.
       </div>
     </div>
   </div>
 </div>
 
-<div id="statusBar">
-  <span><span class="sb-dot" id="sbServer"></span>SERVER</span>
-  <span><span class="sb-dot" id="sbCam"></span>CAMERA</span>
-  <span><span class="sb-dot" id="sbStream"></span>STREAM</span>
+<div id="sb">
+  <span><span class="sd" id="sdSrv"></span>SERVER</span>
+  <span><span class="sd" id="sdCam"></span>CAMERA</span>
+  <span><span class="sd" id="sdStr"></span>STREAM</span>
   <span id="sbIp">IP: —</span>
   <span id="sbNet">NET: —</span>
-  <span id="sbFps">FPS: —</span>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.4/peerjs.min.js"></script>
 <script>
-// ═══════════════════════════════════════════════════════════════════════════════
-// ARCHITECTURE: 
-//
-// PROBLEM: A fixed receiver peer ID conflicts when PeerJS cloud still holds
-// the old session open (causes "unavailable-id" error you saw).
-//
-// SOLUTION — Two-peer receiver design:
-//   1. BROKER peer  → fixed ID "livecam-broker-v3". Extremely lightweight.
-//      Only job: when a sender data-connects and asks "what is the receiver ID?",
-//      broker replies with receiverPeerId. Broker auto-retries with suffix if ID taken.
-//   2. RECEIVER peer → always a fresh random ID. Never conflicts.
-//      Senders get this ID from broker, then CALL it with camera stream.
-//
-// Sender flow: connect to broker → get receiverPeerId → call receiverPeerId with camera
-// Receiver flow: start random peer → start broker → answer all incoming calls
-// ═══════════════════════════════════════════════════════════════════════════════
+'use strict';
 
-const CORRECT_PIN = '225400';
-const BROKER_BASE_ID = 'livecam-broker-v3';
+// ─── CONFIG ──────────────────────────────────────────────────────────────────
+const PIN     = '225400';
+const PIN_KEY = 'lc_pinok_v2';
 
-// ─── PIN LOCK ────────────────────────────────────────────────────────────────
-let pinEntry = '';
-const pinUnlockedKey = 'livecam_unlocked_v2';
-
-function checkPinOnLoad() {
-  if (localStorage.getItem(pinUnlockedKey) === '1') {
-    document.getElementById('pinOverlay').classList.add('hidden');
-  }
-}
-function pinKey(k) {
-  if (k === '') { pinEntry = pinEntry.slice(0, -1); }
-  else { if (pinEntry.length >= 6) return; pinEntry += k; }
-  updatePinDots();
-  if (pinEntry.length === 6) checkPin();
-}
-function pinClear() { pinEntry = ''; updatePinDots(); document.getElementById('pinError').textContent = ''; }
-function updatePinDots() {
-  for (let i = 0; i < 6; i++)
-    document.getElementById('pd' + i).classList.toggle('filled', i < pinEntry.length);
-}
-function checkPin() {
-  if (pinEntry === CORRECT_PIN) {
-    localStorage.setItem(pinUnlockedKey, '1');
-    document.getElementById('pinOverlay').classList.add('hidden');
-    toast('Access granted ✓');
-  } else {
-    document.getElementById('pinError').textContent = '✕ INCORRECT PIN';
-    pinEntry = ''; updatePinDots();
-    setTimeout(() => { document.getElementById('pinError').textContent = ''; }, 1500);
-  }
+// Receiver ID rotates daily — avoids PeerJS ghost-session conflicts.
+// If a slot is taken, we try up to 9 alternates (same formula on sender side).
+function dailyBase() {
+  const d = new Date();
+  return 'lc-rx-' + d.getFullYear() + '-' + d.getMonth() + '-' + d.getDate();
 }
 
-// ─── TOAST ───────────────────────────────────────────────────────────────────
-function toast(msg, isErr = false) {
-  const el = document.createElement('div');
-  el.className = 'toast-msg' + (isErr ? ' err' : '');
-  el.textContent = msg;
+// PeerJS peer options — Google STUN + Twilio STUN for better NAT traversal
+function mkOpts(id) {
+  const o = {
+    config: {
+      iceServers: [
+        { urls: 'stun:stun.l.google.com:19302' },
+        { urls: 'stun:stun1.l.google.com:19302' },
+        { urls: 'stun:stun2.l.google.com:19302' },
+        { urls: 'stun:stun3.l.google.com:19302' }
+      ],
+      iceCandidatePoolSize: 10
+    },
+    debug: 0
+  };
+  if (id) o.id = id;
+  return o;
+}
+
+// ─── PIN ─────────────────────────────────────────────────────────────────────
+let pe = '';
+if (localStorage.getItem(PIN_KEY) === '1') document.getElementById('pin').classList.add('hide');
+function pk(k) {
+  if (k === '') pe = pe.slice(0,-1); else { if (pe.length >= 6) return; pe += k; }
+  ud(); if (pe.length === 6) cp();
+}
+function pc() { pe=''; ud(); document.getElementById('perr').textContent=''; }
+function ud() { for (let i=0;i<6;i++) document.getElementById('pd'+i).classList.toggle('on', i<pe.length); }
+function cp() {
+  if (pe===PIN) { localStorage.setItem(PIN_KEY,'1'); document.getElementById('pin').classList.add('hide'); toast('✓ Unlocked'); }
+  else { document.getElementById('perr').textContent='✕ WRONG PIN'; pe=''; ud(); setTimeout(()=>document.getElementById('perr').textContent='',1400); }
+}
+
+// ─── UI ──────────────────────────────────────────────────────────────────────
+function pg(n) {
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('on'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));
+  document.getElementById('page'+n).classList.add('on');
+  document.getElementById('t'+n).classList.add('on');
+}
+setInterval(()=>{ document.getElementById('htime').textContent=new Date().toTimeString().slice(0,8); },1000);
+function toast(msg,err=false) {
+  const el=document.createElement('div');
+  el.className='tm'+(err?' e':''); el.textContent=msg;
   document.getElementById('toast').appendChild(el);
-  setTimeout(() => el.remove(), 4200);
+  setTimeout(()=>el.remove(),4200);
+}
+function dv(id,val,cls='') {
+  const el=document.getElementById(id); if(!el) return;
+  el.textContent=val; el.className='dv'+(cls?' '+cls:'');
+}
+function dot(id,cls) { const el=document.getElementById(id); if(el) el.className='sd'+(cls?' '+cls:''); }
+function cid(s){ return s.replace(/[^a-zA-Z0-9]/g,'_'); }
+
+// ─── BLANK STREAM (for WebRTC answer handshake) ───────────────────────────────
+function blankStream() {
+  const c=document.createElement('canvas'); c.width=2; c.height=2;
+  c.getContext('2d').fillRect(0,0,2,2);
+  return c.captureStream(1);
 }
 
-// ─── PAGE TABS ───────────────────────────────────────────────────────────────
-function showPage(name) {
-  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-  document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
-  const cap = name.charAt(0).toUpperCase() + name.slice(1);
-  document.getElementById('page' + cap).classList.add('active');
-  document.getElementById('btn' + cap).classList.add('active');
+// ═══════════════════════════════════════════════════════════════════════════════
+// RECEIVER
+// Tries daily slot IDs 0-9. Answers every incoming call = one camera feed.
+// ═══════════════════════════════════════════════════════════════════════════════
+let rxPeer   = null;
+let rxSlot   = 0;
+let rxCams   = new Map();
+let rxRetry  = null;
+let camN     = 0;
+
+function rxStart() {
+  if (rxRetry) clearTimeout(rxRetry);
+  if (rxPeer)  { try{rxPeer.destroy();}catch(e){} rxPeer=null; }
+  dot('sdSrv','y');
+
+  const rxId = dailyBase() + (rxSlot > 0 ? '-s'+rxSlot : '');
+  // Save to localStorage so same-device senders skip probing
+  try { localStorage.setItem('lc_rxid', rxId); localStorage.setItem('lc_rxts', Date.now()); } catch(e){}
+
+  rxPeer = new Peer(rxId, mkOpts());
+
+  rxPeer.on('open', id => {
+    dot('sdSrv','g');
+    dv('dSig', 'RX READY ✓', 'ok');
+    toast('Receiver ready (slot ' + rxSlot + ')');
+  });
+
+  // Every incoming call = a sender's camera
+  rxPeer.on('call', call => {
+    const meta  = call.metadata || {};
+    const sid   = meta.sid || call.peer;
+    const label = meta.label || ('CAM-' + String(++camN).padStart(2,'0'));
+
+    // Must answer — even with blank stream — for WebRTC to complete
+    call.answer(blankStream());
+
+    // Create tile if new sender
+    if (!rxCams.has(sid)) {
+      mkCard(sid, label);
+      rxCams.set(sid, { call, facing:'environment', label });
+    } else {
+      rxCams.get(sid).call = call;
+      cstat(sid,'conn');
+    }
+
+    // THIS is where the real video arrives
+    call.on('stream', stream => {
+      const vid = document.getElementById('v-'+cid(sid));
+      if (!vid) return;
+      // Detach first to avoid frozen frame bug
+      vid.srcObject = null;
+      requestAnimationFrame(() => {
+        vid.srcObject = stream;
+        const tryPlay = () => vid.play().catch(e=>{
+          // Autoplay blocked — retry once on user gesture fallback
+          vid.muted=true; vid.play().catch(()=>{});
+        });
+        if (vid.readyState >= 2) tryPlay();
+        else vid.onloadedmetadata = tryPlay;
+      });
+      cstat(sid,'live');
+      updCnt();
+      toast('📷 ' + label + ' is LIVE');
+    });
+
+    call.on('close', () => { cstat(sid,'off'); updCnt(); });
+    call.on('error', () => { cstat(sid,'off'); });
+  });
+
+  rxPeer.on('error', err => {
+    console.warn('[RX error]', err.type);
+    dot('sdSrv','r');
+    if (err.type === 'unavailable-id') {
+      // Ghost session still holds this slot — move to next
+      rxSlot = (rxSlot + 1) % 10;
+      try { localStorage.setItem('lc_rxid', dailyBase()+(rxSlot>0?'-s'+rxSlot:'')); } catch(e){}
+      rxRetry = setTimeout(rxStart, 1200);
+    } else if (err.type === 'network' || err.type === 'server-error' || err.type === 'socket-error') {
+      rxRetry = setTimeout(rxStart, 5000);
+    } else {
+      rxRetry = setTimeout(rxStart, 8000);
+    }
+  });
+
+  rxPeer.on('disconnected', () => {
+    dot('sdSrv','y');
+    rxRetry = setTimeout(() => {
+      if (rxPeer && !rxPeer.destroyed) rxPeer.reconnect(); else rxStart();
+    }, 4000);
+  });
 }
 
-// ─── CLOCK ───────────────────────────────────────────────────────────────────
-setInterval(() => {
-  document.getElementById('hdrTime').textContent = new Date().toTimeString().split(' ')[0];
-}, 1000);
+function rxRestart() {
+  rxSlot = 0; camN = 0;
+  // Clear grid
+  const grid = document.getElementById('grid');
+  grid.innerHTML = '<div class="empty"><span>📷</span>RESTARTING...<br>Senders will reconnect automatically.</div>';
+  rxCams.clear();
+  updCnt();
+  toast('Restarting receiver...');
+  rxStart();
+}
 
-// ─── SERVER CONFIG ────────────────────────────────────────────────────────────
-let sigServerConfig = null;
-function loadServerConfig() {
-  const saved = localStorage.getItem('livecam_server');
-  if (saved) { document.getElementById('sigServerInput').value = saved; parseServerConfig(saved); }
+function mkCard(sid, label) {
+  const id = cid(sid);
+  if (document.getElementById('card-'+id)) return;
+  const grid = document.getElementById('grid');
+  const ph = grid.querySelector('.empty'); if(ph) ph.remove();
+  const card = document.createElement('div');
+  card.className='card'; card.id='card-'+id;
+  card.innerHTML = `
+    <video id="v-${id}" autoplay playsinline muted></video>
+    <div class="chud">
+      <div class="ctop">
+        <div class="cname">${label}</div>
+        <div class="cstat conn" id="cs-${id}">CONNECTING</div>
+      </div>
+      <div class="cbot">
+        <div class="cmini">${sid.slice(-8).toUpperCase()}</div>
+        <button class="flipbtn" onclick="doFlip('${sid}')">⟳ FLIP</button>
+      </div>
+    </div>`;
+  grid.appendChild(card);
 }
-function saveServer() {
-  const val = document.getElementById('sigServerInput').value.trim();
-  localStorage.setItem('livecam_server', val);
-  parseServerConfig(val);
-  toast('Server saved — restart camera/receiver to apply.');
+
+function cstat(sid, s) {
+  const el=document.getElementById('cs-'+cid(sid)); if(!el) return;
+  const labels={live:'● LIVE',conn:'CONNECTING',off:'OFFLINE'};
+  el.className='cstat '+s; el.textContent=labels[s]||s.toUpperCase();
 }
-function parseServerConfig(url) {
-  if (!url) { sigServerConfig = null; return; }
-  try {
-    const u = new URL(url);
-    sigServerConfig = { host: u.hostname, port: u.port || (u.protocol === 'https:' ? 443 : 80), path: u.pathname || '/livecam', secure: u.protocol === 'https:' };
-  } catch(e) { sigServerConfig = null; }
+
+function updCnt() {
+  const n=rxCams.size;
+  document.getElementById('acnt').textContent=n;
+  document.getElementById('hcams').textContent=n+' CAM';
+  const live=[...rxCams.values()].some(c=>c.call);
+  dot('sdStr', live?'g':'');
 }
-function makePeerOptions() {
-  // Always use reliable STUN/TURN ICE servers for internet traversal
-  const iceServers = [
-    { urls: 'stun:stun.l.google.com:19302' },
-    { urls: 'stun:stun1.l.google.com:19302' },
-    { urls: 'stun:stun2.l.google.com:19302' }
-  ];
-  const base = sigServerConfig ? { ...sigServerConfig } : {};
-  return { ...base, config: { iceServers } };
+
+function doFlip(sid) {
+  if (!rxPeer||!rxPeer.open) return;
+  const cam=rxCams.get(sid);
+  const nf=(cam&&cam.facing==='environment')?'user':'environment';
+  if(cam) cam.facing=nf;
+  const conn=rxPeer.connect(sid,{reliable:true});
+  conn.on('open',()=>{ conn.send({type:'flip',facing:nf}); setTimeout(()=>{ try{conn.close();}catch(e){} },3000); });
+  conn.on('error',()=>toast('Flip failed',true));
+  toast('↺ Flip sent');
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // SENDER
+// Connects to PeerJS. Finds receiver via:
+//  1. localStorage (instant — same device tabs)
+//  2. Probe slots 0-9 by data-connecting and checking if open
+// Then calls receiver with camera stream.
 // ═══════════════════════════════════════════════════════════════════════════════
-let localStream = null;
-let senderPeer = null;
-let senderActive = false;
-let senderFacing = 'environment';
-let senderStartTime = null;
-let senderUptimeInterval = null;
-let senderRetryTimer = null;
-let senderPeerId = null;
-// Map of receiverPeerId → MediaConnection (the call we placed to receiver)
-const outgoingCalls = new Map();
+let txPeer    = null;
+let txStream  = null;
+let txActive  = false;
+let txFacing  = 'environment';
+let txUpTimer = null;
+let txUpStart = null;
+let txRetry   = null;
+let txCalls   = new Map();
+let probing   = false;
 
-function getSenderPeerId() {
-  let id = localStorage.getItem('livecam_my_sender_id');
-  if (!id) {
-    id = 'livecam-cam-' + Math.random().toString(36).substr(2, 9);
-    localStorage.setItem('livecam_my_sender_id', id);
-  }
+function getTxId() {
+  let id=localStorage.getItem('lc_txid');
+  if (!id) { id='lc-cam-'+Math.random().toString(36).slice(2,11); localStorage.setItem('lc_txid',id); }
   return id;
 }
 
-async function startSender() {
-  if (senderActive) return;
-  senderActive = true;
-  document.getElementById('btnStartSender').disabled = true;
-  setDiag('dPermission', 'REQUESTING...', 'warn');
-
+async function txStart() {
+  if (txActive) return;
+  txActive=true;
+  document.getElementById('bStart').disabled=true;
+  dv('dPerm','REQUESTING...','warn');
   try {
-    localStream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: senderFacing, width: { ideal: 1280 }, height: { ideal: 720 }, frameRate: { ideal: 30 } },
-      audio: false
+    txStream = await navigator.mediaDevices.getUserMedia({
+      video:{facingMode:txFacing,width:{ideal:1280},height:{ideal:720},frameRate:{ideal:30}},
+      audio:false
     });
-    document.getElementById('localVideo').srcObject = localStream;
-
-    const track = localStream.getVideoTracks()[0];
-    const s = track.getSettings();
-    setDiag('dPermission', 'GRANTED ✓', 'ok');
-    setDiag('dFacing', s.facingMode === 'user' ? 'FRONT' : 'BACK');
-    setDiag('dResolution', `${s.width||'?'}×${s.height||'?'}`);
-    setDiag('dFps', (s.frameRate||'?') + ' fps');
-
-    document.getElementById('btnStopSender').style.display = 'block';
-    document.getElementById('btnStartSender').style.display = 'none';
-    document.getElementById('senderBlink').style.display = 'inline-block';
-    document.getElementById('sbCam').className = 'sb-dot green';
-    document.getElementById('sbFps').textContent = 'FPS: ' + (s.frameRate || '?');
-
+    document.getElementById('lv').srcObject = txStream;
+    const s = txStream.getVideoTracks()[0].getSettings();
+    dv('dPerm','GRANTED ✓','ok');
+    dv('dFace', s.facingMode==='user'?'FRONT':'BACK');
+    dv('dRes', `${s.width||'?'}×${s.height||'?'}`);
+    dv('dFps', (s.frameRate||'?')+' fps');
+    dot('sdCam','g');
+    document.getElementById('bStop').style.display='block';
+    document.getElementById('bStart').style.display='none';
+    document.getElementById('sblink').style.display='inline-block';
     if (navigator.connection) {
-      const nc = navigator.connection;
-      setDiag('dNetType', (nc.effectiveType||'?').toUpperCase());
-      document.getElementById('sbNet').textContent = 'NET: ' + (nc.effectiveType||'?');
+      dv('dNet',(navigator.connection.effectiveType||'?').toUpperCase());
+      document.getElementById('sbNet').textContent='NET: '+(navigator.connection.effectiveType||'?');
     }
-
-    senderStartTime = Date.now();
-    senderUptimeInterval = setInterval(updateUptime, 1000);
+    txUpStart=Date.now();
+    txUpTimer=setInterval(()=>{
+      const e=Math.floor((Date.now()-txUpStart)/1000);
+      document.getElementById('dUp').textContent=[Math.floor(e/3600),Math.floor(e%3600/60),e%60].map(x=>String(x).padStart(2,'0')).join(':');
+    },1000);
     toast('Camera started ✓');
-    connectSenderPeer();
-
-  } catch (err) {
-    senderActive = false;
-    document.getElementById('btnStartSender').disabled = false;
-    setDiag('dPermission', 'DENIED ✗', 'err');
-    toast('Camera error: ' + err.message, true);
+    txConnect();
+  } catch(err) {
+    txActive=false;
+    document.getElementById('bStart').disabled=false;
+    dv('dPerm','DENIED ✗','err');
+    toast('Camera error: '+err.message,true);
   }
 }
 
-function connectSenderPeer() {
-  if (senderRetryTimer) clearTimeout(senderRetryTimer);
-  senderPeerId = getSenderPeerId();
+function txConnect() {
+  if (txRetry) clearTimeout(txRetry);
+  if (txPeer)  { try{txPeer.destroy();}catch(e){} txPeer=null; }
+  dot('sdSrv','y'); dv('dSig','CONNECTING...','warn');
 
-  setDiag('dStreamId', senderPeerId);
-  setDiag('dServer', 'CONNECTING...', 'warn');
-  document.getElementById('sbServer').className = 'sb-dot yellow';
+  const myId=getTxId(); dv('dMyId',myId);
+  txPeer = new Peer(myId, mkOpts());
 
-  if (senderPeer) { try { senderPeer.destroy(); } catch(e){} }
-
-  senderPeer = new Peer(senderPeerId, makePeerOptions());
-
-  senderPeer.on('open', (id) => {
-    setDiag('dServer', 'CONNECTED ✓', 'ok');
-    setDiag('dConn', 'FINDING RECEIVER...', 'warn');
-    document.getElementById('sbServer').className = 'sb-dot green';
-    toast('Peer server connected ✓ — finding receiver...');
-    // Ask broker for the receiver's current real peer ID
-    discoverReceiverViaBroker();
+  txPeer.on('open', () => {
+    dot('sdSrv','g'); dv('dSig','CONNECTED ✓','ok');
+    toast('Peer connected — finding receiver...');
+    findAndCall();
   });
 
-  // Listen for data connections FROM receiver (for camera flip commands)
-  senderPeer.on('connection', (conn) => {
-    conn.on('data', (data) => {
-      if (data && data.type === 'flipCamera') switchCamera(data.facing);
-    });
+  // Receiver sends flip commands via data connection
+  txPeer.on('connection', conn=>{
+    conn.on('data', d=>{ if(d&&d.type==='flip') swCam(d.facing); });
   });
 
-  senderPeer.on('disconnected', () => {
-    setDiag('dServer', 'DISCONNECTED', 'err');
-    document.getElementById('sbServer').className = 'sb-dot red';
-    senderRetryTimer = setTimeout(() => {
-      if (senderActive) { toast('Reconnecting...'); senderPeer.reconnect(); }
-    }, 5000);
+  txPeer.on('disconnected', ()=>{
+    dot('sdSrv','r'); dv('dSig','DISCONNECTED','err');
+    txRetry=setTimeout(()=>{ if(txActive){ if(txPeer&&!txPeer.destroyed) txPeer.reconnect(); else txConnect(); } },5000);
   });
 
-  senderPeer.on('error', (err) => {
-    console.warn('Sender peer error:', err.type, err.message);
-    if (err.type === 'unavailable-id') {
-      // Our stored ID is taken — generate fresh
-      localStorage.removeItem('livecam_my_sender_id');
-      senderPeerId = getSenderPeerId();
+  txPeer.on('error', err=>{
+    console.warn('[TX error]',err.type);
+    if (err.type==='unavailable-id') { localStorage.removeItem('lc_txid'); }
+    dot('sdSrv','r');
+    txRetry=setTimeout(()=>{ if(txActive) txConnect(); },6000);
+  });
+}
+
+function findAndCall() {
+  if (!txActive||!txPeer||!txPeer.open) return;
+
+  // ── Fast path: same device ──────────────────────────────────────────────
+  // Receiver wrote its current ID to localStorage — use it directly
+  try {
+    const stored = localStorage.getItem('lc_rxid');
+    const ts     = parseInt(localStorage.getItem('lc_rxts')||'0');
+    const age    = Date.now() - ts;
+    if (stored && age < 10 * 60 * 1000) { // accept if written within 10 min
+      callRx(stored);
+      return;
     }
-    setDiag('dConn', 'ERR: ' + err.type, 'err');
-    document.getElementById('sbServer').className = 'sb-dot red';
-    // Retry in 6s
-    senderRetryTimer = setTimeout(() => { if (senderActive) connectSenderPeer(); }, 6000);
-  });
+  } catch(e){}
+
+  // ── Slow path: probe daily slots ────────────────────────────────────────
+  probeSlots(0);
 }
 
-// Try broker IDs in order (suffix 0, 1, 2...) until one responds
-let brokerAttempt = 0;
-let discoveryConn = null;
-let discoveryTimer = null;
-
-function discoverReceiverViaBroker() {
-  if (!senderActive || !senderPeer || !senderPeer.open) return;
-  if (discoveryTimer) clearTimeout(discoveryTimer);
-  if (discoveryConn) { try { discoveryConn.close(); } catch(e){} discoveryConn = null; }
-
-  const suffix = brokerAttempt > 0 ? '-' + brokerAttempt : '';
-  const brokerId = BROKER_BASE_ID + suffix;
-
-  setDiag('dConn', 'BROKER ' + brokerId.substr(-4).toUpperCase(), 'warn');
-
-  discoveryConn = senderPeer.connect(brokerId, { reliable: true });
-
-  let gotResponse = false;
-
-  discoveryConn.on('open', () => {
-    discoveryConn.send({ type: 'ping' });
-  });
-
-  discoveryConn.on('data', (data) => {
-    if (data && data.type === 'receiverId' && data.id) {
-      gotResponse = true;
-      brokerAttempt = 0; // reset for next time
-      const receiverId = data.id;
-      setDiag('dConn', 'RECEIVER FOUND ✓', 'ok');
-      toast('Receiver found — connecting camera...');
-      callReceiver(receiverId);
-    }
-  });
-
-  discoveryConn.on('error', () => {
-    if (!gotResponse) tryNextBroker();
-  });
-
-  // If no response in 5 seconds, try next broker suffix
-  discoveryTimer = setTimeout(() => {
-    if (!gotResponse) tryNextBroker();
-  }, 5000);
-}
-
-function tryNextBroker() {
-  if (!senderActive) return;
-  brokerAttempt++;
-  if (brokerAttempt > 5) brokerAttempt = 0;
-  setDiag('dConn', 'RETRY BROKER...', 'warn');
-  discoveryTimer = setTimeout(discoverReceiverViaBroker, 3000);
-}
-
-function callReceiver(receiverId) {
-  if (!senderPeer || !localStream) return;
-  if (outgoingCalls.has(receiverId)) return; // already calling
-
-  // Pass sender's peer ID as metadata so receiver can label this camera
-  const call = senderPeer.call(receiverId, localStream, {
-    metadata: { senderId: senderPeerId, label: 'CAM-' + shortId(senderPeerId) }
-  });
-
-  if (!call) {
-    setDiag('dConn', 'CALL FAILED', 'err');
-    setTimeout(() => callReceiver(receiverId), 6000);
+function probeSlots(slot) {
+  if (!txActive||!txPeer||!txPeer.open) return;
+  if (slot >= 10) {
+    // All slots tried — wait and retry from 0
+    dv('dStr','NO RECEIVER FOUND','err');
+    toast('No receiver found. Is receiver tab open?', true);
+    setTimeout(()=>{ if(txActive&&!txCalls.size) probeSlots(0); }, 8000);
     return;
   }
 
-  outgoingCalls.set(receiverId, call);
+  const rxId = dailyBase() + (slot > 0 ? '-s'+slot : '');
+  dv('dStr','PROBING slot-'+slot,'warn');
 
-  call.on('stream', () => {
-    // Receiver answered — we don't display their stream, just confirm connected
-    setDiag('dConn', 'STREAMING ✓', 'ok');
-    document.getElementById('senderStatusLabel').textContent = 'LIVE';
-    document.getElementById('sbStream').className = 'sb-dot green';
-    toast('Receiver connected — streaming live ✓');
+  let found = false;
+  let conn;
+  try { conn = txPeer.connect(rxId, {reliable:false, serialization:'none'}); }
+  catch(e) { setTimeout(()=>probeSlots(slot+1), 500); return; }
+
+  // If PeerJS can open a data channel to this ID, the receiver is there
+  const timer = setTimeout(()=>{
+    if (!found) { try{conn.close();}catch(e){} probeSlots(slot+1); }
+  }, 3500);
+
+  conn.on('open', ()=>{
+    found=true; clearTimeout(timer);
+    try{conn.close();}catch(e){}
+    callRx(rxId);
   });
 
-  call.on('close', () => {
-    outgoingCalls.delete(receiverId);
-    setDiag('dConn', 'RECONNECTING...', 'warn');
-    document.getElementById('sbStream').className = 'sb-dot yellow';
-    // Re-discover in case receiver restarted with a new ID
-    setTimeout(() => { if (senderActive) discoverReceiverViaBroker(); }, 5000);
-  });
-
-  call.on('error', (err) => {
-    outgoingCalls.delete(receiverId);
-    setDiag('dConn', 'STREAM ERR', 'err');
-    setTimeout(() => { if (senderActive) discoverReceiverViaBroker(); }, 5000);
-  });
-}
-
-function stopSender() {
-  senderActive = false;
-  if (localStream) { localStream.getTracks().forEach(t => t.stop()); localStream = null; }
-  outgoingCalls.forEach(call => { try { call.close(); } catch(e){} });
-  outgoingCalls.clear();
-  if (senderPeer) { try { senderPeer.destroy(); } catch(e){} senderPeer = null; }
-  if (senderUptimeInterval) clearInterval(senderUptimeInterval);
-  if (senderRetryTimer) clearTimeout(senderRetryTimer);
-  if (discoveryTimer) clearTimeout(discoveryTimer);
-  if (discoveryConn) { try { discoveryConn.close(); } catch(e){} discoveryConn = null; }
-  brokerAttempt = 0;
-
-  document.getElementById('localVideo').srcObject = null;
-  document.getElementById('btnStartSender').style.display = 'block';
-  document.getElementById('btnStartSender').disabled = false;
-  document.getElementById('btnStopSender').style.display = 'none';
-  document.getElementById('senderBlink').style.display = 'none';
-  document.getElementById('senderStatusLabel').textContent = 'READY';
-  setDiag('dPermission', '—'); setDiag('dServer', '—'); setDiag('dConn', '—');
-  document.getElementById('sbCam').className = 'sb-dot';
-  document.getElementById('sbStream').className = 'sb-dot';
-  document.getElementById('sbServer').className = 'sb-dot red';
-  toast('Camera stopped');
-}
-
-async function switchCamera(facing) {
-  senderFacing = facing;
-  document.getElementById('btnBack').classList.toggle('active', facing === 'environment');
-  document.getElementById('btnFront').classList.toggle('active', facing === 'user');
-  if (!localStream) return;
-
-  localStream.getVideoTracks().forEach(t => t.stop());
-
-  try {
-    const newStream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: facing, width: { ideal: 1280 }, height: { ideal: 720 }, frameRate: { ideal: 30 } },
-      audio: false
-    });
-    const newTrack = newStream.getVideoTracks()[0];
-
-    // Replace track in all active outgoing calls
-    outgoingCalls.forEach(call => {
-      if (call.peerConnection) {
-        call.peerConnection.getSenders().forEach(sender => {
-          if (sender.track && sender.track.kind === 'video') sender.replaceTrack(newTrack);
-        });
-      }
-    });
-
-    localStream = newStream;
-    document.getElementById('localVideo').srcObject = newStream;
-    const s = newTrack.getSettings();
-    setDiag('dFacing', facing === 'user' ? 'FRONT' : 'BACK');
-    setDiag('dResolution', `${s.width||'?'}×${s.height||'?'}`);
-    toast('Camera switched ✓');
-  } catch(e) { toast('Switch failed: ' + e.message, true); }
-}
-
-function updateUptime() {
-  if (!senderStartTime) return;
-  const e = Math.floor((Date.now() - senderStartTime) / 1000);
-  const h = String(Math.floor(e/3600)).padStart(2,'0');
-  const m = String(Math.floor((e%3600)/60)).padStart(2,'0');
-  const s = String(e%60).padStart(2,'0');
-  document.getElementById('dUptime').textContent = `${h}:${m}:${s}`;
-}
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// RECEIVER — dual-peer design (broker + receiver)
-// ═══════════════════════════════════════════════════════════════════════════════
-let receiverPeer = null;   // random ID, answers video calls from senders
-let brokerPeer   = null;   // fixed ID, tells senders the receiver's real ID
-let currentReceiverId = null;
-const activeCameras = new Map();
-let receiverRetryTimer = null;
-let brokerRetryTimer = null;
-let camCounter = 0;
-let brokerSuffix = 0; // incremented if broker ID is taken
-
-function initReceiver() {
-  if (receiverRetryTimer) clearTimeout(receiverRetryTimer);
-  if (receiverPeer) { try { receiverPeer.destroy(); } catch(e){} receiverPeer = null; }
-
-  document.getElementById('sbServer').className = 'sb-dot yellow';
-
-  // Step 1: Create receiver peer with a guaranteed-fresh random ID
-  receiverPeer = new Peer(makePeerOptions()); // no ID = PeerJS assigns random
-
-  receiverPeer.on('open', (id) => {
-    currentReceiverId = id;
-    document.getElementById('sbServer').className = 'sb-dot green';
-    toast('Receiver ready — ID: ' + id.substr(-6).toUpperCase());
-    // Step 2: Start broker so senders can discover this ID
-    startBroker();
-  });
-
-  // Answer every incoming video call (each = one sender's camera)
-  receiverPeer.on('call', (call) => {
-    const meta = call.metadata || {};
-    const senderId = meta.senderId || call.peer;
-    const label = meta.label || ('CAM-' + (++camCounter).toString().padStart(2,'0'));
-
-    // Answer — we must pass a stream; use silent audio so WebRTC is happy
-    call.answer(createSilentStream());
-
-    if (!activeCameras.has(senderId)) {
-      createCameraCard(senderId, label);
-      activeCameras.set(senderId, { call, facing: 'environment' });
-    } else {
-      activeCameras.get(senderId).call = call;
-      setCardStatus(senderId, 'connecting');
-    }
-
-    call.on('stream', (remoteStream) => {
-      const vid = document.getElementById('vid-' + cleanId(senderId));
-      if (!vid) return;
-      vid.srcObject = null;        // clear first — avoids stale track
-      vid.srcObject = remoteStream;
-      vid.onloadedmetadata = () => vid.play().catch(() => {});
-      if (vid.readyState >= 2) vid.play().catch(() => {});
-      setCardStatus(senderId, 'live');
-      updateCameraCount();
-      toast('📷 ' + label + ' is live!');
-    });
-
-    call.on('close', () => { setCardStatus(senderId, 'offline'); updateCameraCount(); });
-    call.on('error', ()  => { setCardStatus(senderId, 'offline'); });
-  });
-
-  // Accept flip commands sent as data connections from receiver→sender path
-  receiverPeer.on('connection', (conn) => {
-    // nothing needed here; flip goes receiver→sender, not reverse
-  });
-
-  receiverPeer.on('error', (err) => {
-    console.warn('receiverPeer error:', err.type);
-    document.getElementById('sbServer').className = 'sb-dot red';
-    receiverRetryTimer = setTimeout(initReceiver, 5000);
-  });
-
-  receiverPeer.on('disconnected', () => {
-    document.getElementById('sbServer').className = 'sb-dot yellow';
-    receiverRetryTimer = setTimeout(() => {
-      if (receiverPeer && !receiverPeer.destroyed) receiverPeer.reconnect();
-      else initReceiver();
-    }, 4000);
+  conn.on('error', ()=>{
+    clearTimeout(timer);
+    if (!found) setTimeout(()=>probeSlots(slot+1), 300);
   });
 }
 
-function startBroker() {
-  if (brokerRetryTimer) clearTimeout(brokerRetryTimer);
-  if (brokerPeer) { try { brokerPeer.destroy(); } catch(e){} brokerPeer = null; }
+function callRx(rxId) {
+  if (!txPeer||!txStream) return;
+  if (txCalls.has(rxId)) return; // already calling this receiver
 
-  const brokerId = BROKER_BASE_ID + (brokerSuffix > 0 ? '-' + brokerSuffix : '');
+  dv('dStr','CALLING RECEIVER...','warn');
+  const myId = getTxId();
+  const label = 'CAM-'+myId.slice(-4).toUpperCase();
 
-  brokerPeer = new Peer(brokerId, makePeerOptions());
-
-  brokerPeer.on('open', () => {
-    console.log('Broker online as', brokerId);
-    // Save broker ID so senders on same device can read it instantly
-    localStorage.setItem('livecam_broker_id', brokerId);
+  const call = txPeer.call(rxId, txStream, {
+    metadata: { sid: myId, label }
   });
 
-  // When a sender data-connects to broker, reply with the real receiver ID
-  brokerPeer.on('connection', (conn) => {
-    conn.on('open', () => {
-      conn.send({ type: 'receiverId', id: currentReceiverId });
-    });
-    conn.on('data', (d) => {
-      // Senders may send keepalive pings — just reply with receiver ID again
-      if (d && d.type === 'ping') conn.send({ type: 'receiverId', id: currentReceiverId });
-    });
-  });
-
-  brokerPeer.on('error', (err) => {
-    console.warn('brokerPeer error:', err.type);
-    if (err.type === 'unavailable-id') {
-      // ID taken — increment suffix and try next slot
-      brokerSuffix++;
-      if (brokerSuffix > 5) {
-        // After 5 tries, clear suffix (old sessions should have expired)
-        brokerSuffix = 0;
-      }
-      brokerRetryTimer = setTimeout(startBroker, 2000);
-    } else {
-      brokerRetryTimer = setTimeout(startBroker, 5000);
-    }
-  });
-
-  brokerPeer.on('disconnected', () => {
-    brokerRetryTimer = setTimeout(() => {
-      if (brokerPeer && !brokerPeer.destroyed) brokerPeer.reconnect();
-      else startBroker();
-    }, 4000);
-  });
-}
-
-function createSilentStream() {
-  // Create a minimal valid stream to complete WebRTC answer handshake
-  try {
-    const ctx = new (window.AudioContext || window.webkitAudioContext)();
-    const dest = ctx.createMediaStreamDestination();
-    return dest.stream;
-  } catch(e) {
-    // Fallback: blank canvas video stream
-    const canvas = document.createElement('canvas');
-    canvas.width = 2; canvas.height = 2;
-    return canvas.captureStream(1);
+  if (!call) {
+    dv('dStr','CALL FAILED','err');
+    setTimeout(()=>{ if(txActive) findAndCall(); },5000);
+    return;
   }
-}
+  txCalls.set(rxId, call);
 
-function createCameraCard(senderId, label) {
-  const cid = cleanId(senderId);
-  if (document.getElementById('card-' + cid)) return; // already exists
-
-  const card = document.createElement('div');
-  card.className = 'cam-card';
-  card.id = 'card-' + cid;
-  card.innerHTML = `
-    <video id="vid-${cid}" autoplay playsinline muted
-      style="width:100%;aspect-ratio:16/9;display:block;object-fit:cover;background:#000"></video>
-    <div class="cam-card-hud">
-      <div class="cam-card-top">
-        <div class="cam-card-name">${label}</div>
-        <div class="cam-card-status connecting" id="status-${cid}">CONNECTING</div>
-      </div>
-      <div class="cam-card-bottom">
-        <div class="cam-mini-diag" id="diag-${cid}">${shortId(senderId)}</div>
-        <button class="cam-flip-btn" onclick="requestCameraFlip('${senderId}')">⟳ FLIP CAM</button>
-      </div>
-    </div>`;
-
-  const grid = document.getElementById('cameraGrid');
-  const ph = grid.querySelector('.no-cameras');
-  if (ph) ph.remove();
-  grid.appendChild(card);
-}
-
-function setCardStatus(senderId, status) {
-  const el = document.getElementById('status-' + cleanId(senderId));
-  if (!el) return;
-  el.className = 'cam-card-status ' + status;
-  el.textContent = status.toUpperCase();
-}
-
-function updateCameraCount() {
-  const n = activeCameras.size;
-  document.getElementById('activeCount').textContent = n;
-  document.getElementById('hdrCams').textContent = n + ' CAM';
-  const live = [...activeCameras.values()].some(c => c.call);
-  document.getElementById('sbStream').className = live ? 'sb-dot green' : 'sb-dot';
-}
-
-function requestCameraFlip(senderId) {
-  if (!receiverPeer || !receiverPeer.open) return;
-  const cam = activeCameras.get(senderId);
-  const newFacing = cam && cam.facing === 'environment' ? 'user' : 'environment';
-  if (cam) cam.facing = newFacing;
-
-  const conn = receiverPeer.connect(senderId);
-  conn.on('open', () => {
-    conn.send({ type: 'flipCamera', facing: newFacing });
-    setTimeout(() => conn.close(), 3000);
+  call.on('stream', ()=>{
+    // Receiver answered — stream is flowing
+    dv('dStr','STREAMING ✓','ok');
+    document.getElementById('sstatus').textContent='LIVE';
+    dot('sdStr','g');
+    toast('🟢 Streaming live ✓');
   });
-  conn.on('error', () => toast('Flip command failed', true));
-  toast('Camera flip →');
+
+  call.on('close', ()=>{
+    txCalls.delete(rxId);
+    dv('dStr','RECONNECTING...','warn'); dot('sdStr','y');
+    document.getElementById('sstatus').textContent='RECONNECTING';
+    setTimeout(()=>{ if(txActive) findAndCall(); },5000);
+  });
+
+  call.on('error', ()=>{
+    txCalls.delete(rxId);
+    dv('dStr','STREAM ERR','err');
+    setTimeout(()=>{ if(txActive) findAndCall(); },5000);
+  });
 }
 
-function refreshReceiverConnections() {
-  toast('Restarting receiver...');
-  brokerSuffix = 0;
-  initReceiver();
+function txStop() {
+  txActive=false;
+  if(txStream){txStream.getTracks().forEach(t=>t.stop());txStream=null;}
+  txCalls.forEach(c=>{try{c.close();}catch(e){}});txCalls.clear();
+  if(txPeer){try{txPeer.destroy();}catch(e){}txPeer=null;}
+  if(txUpTimer)clearInterval(txUpTimer); txUpStart=null;
+  if(txRetry)clearTimeout(txRetry);
+  document.getElementById('lv').srcObject=null;
+  document.getElementById('bStart').style.display='block'; document.getElementById('bStart').disabled=false;
+  document.getElementById('bStop').style.display='none';
+  document.getElementById('sblink').style.display='none';
+  document.getElementById('sstatus').textContent='READY';
+  dv('dPerm','—');dv('dSig','—');dv('dStr','—');
+  dot('sdCam','');dot('sdStr','');dot('sdSrv','r');
+  toast('Stopped');
 }
 
-// ─── SHARED UTILS ─────────────────────────────────────────────────────────────
-function cleanId(id) { return id.replace(/[^a-zA-Z0-9]/g, '_'); }
-function shortId(id) { return (id.split('-').pop() || id).toUpperCase().substr(0, 8); }
-function setDiag(id, val, cls) {
-  const el = document.getElementById(id);
-  if (!el) return;
-  el.textContent = val;
-  el.className = 'diag-val' + (cls ? ' ' + cls : '');
-}
-
-// ─── NETWORK INFO ─────────────────────────────────────────────────────────────
-async function fetchNetInfo() {
+async function swCam(facing) {
+  txFacing=facing;
+  document.getElementById('bBack').classList.toggle('on',facing==='environment');
+  document.getElementById('bFront').classList.toggle('on',facing==='user');
+  if (!txStream) return;
+  txStream.getVideoTracks().forEach(t=>t.stop());
   try {
-    const r = await fetch('https://api.ipify.org?format=json');
-    const d = await r.json();
-    document.getElementById('sbIp').textContent = 'IP: ' + d.ip;
-  } catch(e) { document.getElementById('sbIp').textContent = 'IP: —'; }
+    const ns=await navigator.mediaDevices.getUserMedia({
+      video:{facingMode:facing,width:{ideal:1280},height:{ideal:720},frameRate:{ideal:30}},audio:false
+    });
+    const nt=ns.getVideoTracks()[0];
+    txCalls.forEach(call=>{
+      if(call.peerConnection) call.peerConnection.getSenders().forEach(s=>{
+        if(s.track&&s.track.kind==='video') s.replaceTrack(nt);
+      });
+    });
+    txStream=ns; document.getElementById('lv').srcObject=ns;
+    const st=nt.getSettings(); dv('dFace',facing==='user'?'FRONT':'BACK'); dv('dRes',`${st.width||'?'}×${st.height||'?'}`);
+    toast('Camera switched ✓');
+  } catch(e){ toast('Switch failed: '+e.message,true); }
 }
 
 // ─── INIT ─────────────────────────────────────────────────────────────────────
-window.addEventListener('load', () => {
-  checkPinOnLoad();
-  loadServerConfig();
-  initReceiver();
-  fetchNetInfo();
-
-  if (navigator.connection) {
-    const nc = navigator.connection;
-    document.getElementById('sbNet').textContent = 'NET: ' + (nc.effectiveType || '?');
-    nc.addEventListener('change', () => {
-      document.getElementById('sbNet').textContent = 'NET: ' + (nc.effectiveType || '?');
-    });
+window.addEventListener('load', ()=>{
+  rxStart();
+  // Fetch public IP
+  fetch('https://api.ipify.org?format=json').then(r=>r.json()).then(d=>document.getElementById('sbIp').textContent='IP: '+d.ip).catch(()=>{});
+  if(navigator.connection){
+    document.getElementById('sbNet').textContent='NET: '+(navigator.connection.effectiveType||'?');
+    navigator.connection.addEventListener('change',()=>document.getElementById('sbNet').textContent='NET: '+(navigator.connection.effectiveType||'?'));
   }
 });
 
-// Auto-reconnect on tab focus regain
-document.addEventListener('visibilitychange', () => {
-  if (document.hidden) return;
-  if (senderActive && senderPeer) {
-    if (!senderPeer.open && !senderPeer.destroyed) senderPeer.reconnect();
-    else if (senderPeer.destroyed) connectSenderPeer();
-  }
-  if (receiverPeer) {
-    if (!receiverPeer.open && !receiverPeer.destroyed) receiverPeer.reconnect();
-    else if (receiverPeer.destroyed) initReceiver();
-  }
+document.addEventListener('visibilitychange',()=>{
+  if(document.hidden) return;
+  if(txActive&&txPeer){ if(!txPeer.open&&!txPeer.destroyed) txPeer.reconnect(); else if(txPeer.destroyed) txConnect(); }
+  if(rxPeer){ if(!rxPeer.open&&!rxPeer.destroyed) rxPeer.reconnect(); else if(rxPeer.destroyed) rxStart(); }
 });
 </script>
 </body>

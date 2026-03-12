@@ -16,18 +16,6 @@
 body{background:var(--bg);color:var(--tx);font-family:var(--M);min-height:100vh;overflow-x:hidden;padding-bottom:34px}
 body::before{content:'';position:fixed;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,255,136,.009) 2px,rgba(0,255,136,.009) 4px);pointer-events:none;z-index:9000}
 
-/* PIN */
-#PIN{position:fixed;inset:0;background:#000;z-index:10000;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px}
-#PIN.gone{display:none}
-.pL{font-family:var(--U);font-size:1.8rem;font-weight:700;color:var(--g);letter-spacing:4px}
-.pS{font-size:.66rem;color:var(--dim);letter-spacing:3px}
-.pD{display:flex;gap:10px}
-.pd{width:13px;height:13px;border-radius:50%;border:2px solid var(--gd);transition:.15s}
-.pd.on{background:var(--g);border-color:var(--g);box-shadow:0 0 7px var(--g)}
-.pG{display:grid;grid-template-columns:repeat(3,64px);gap:7px}
-.pb{height:64px;background:var(--panel);border:1px solid var(--bdr);color:var(--tx);font-family:var(--U);font-size:1.4rem;font-weight:700;cursor:pointer;border-radius:4px;transition:.1s}
-.pb:active{background:var(--g);color:#000;transform:scale(.93)}
-.pE{color:var(--r);font-size:.7rem;letter-spacing:2px;height:16px;text-align:center}
 
 /* HEADER */
 header{border-bottom:1px solid var(--bdr);padding:8px 14px;display:flex;align-items:center;justify-content:space-between;background:rgba(6,9,13,.98);position:sticky;top:0;z-index:100}
@@ -289,8 +277,7 @@ header{border-bottom:1px solid var(--bdr);padding:8px 14px;display:flex;align-it
 // ═══════════════════════════════════════════════════════════════
 // CONFIG
 // ═══════════════════════════════════════════════════════════════
-const PIN     = '225400';
-const PK      = 'dpwed_pin';
+
 const DBK     = 'dpwed_db';
 const MYK     = 'dpwed_myid';
 const ROOM    = 'dpwed_room_v1'; // Firebase path prefix
@@ -303,16 +290,4 @@ const ICE     = {
   ]
 };
 
-// ═══════════════════════════════════════════════════════════════
-// PIN
-// ═══════════════════════════════════════════════════════════════
-let _p='';
-if(localStorage.getItem(PK)==='1') document.getElementById('PIN').classList.add('gone');
-function pk(k){
-  if(k==='C'){_p='';_ud();document.getElementById('PE').textContent='';return}
-  if(k===''){_p=_p.slice(0,-1);}else{if(_p.length>=6)return;_p+=k;}
-  _ud();if(_p.length===6)_ck();
-}
-function _ud(){for(let i=0;i<6;i++)document.getElementById('d'+i).classList.toggle('on',i<_p.length);}
-function _ck(){
-  if(_p===PIN){localStorage.setItem(PK,'1');document.getElementById('PIN').classList.add('gone');toast(
+
